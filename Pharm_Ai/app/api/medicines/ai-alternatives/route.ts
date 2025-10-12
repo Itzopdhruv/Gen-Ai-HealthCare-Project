@@ -5,21 +5,39 @@ import { medicines } from '@/lib/database'
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyCrCd7CjUyz6-dZ-TM06KoS-AWS0LF0iws')
 
-interface AlternativesRequest {
+interface AIAlternativesRequest {
   medicineName: string
-  category?: string
   requestedQuantity?: number
-  maxResults?: number
+  category?: string
   patientAge?: number
   allergies?: string[]
   medicalConditions?: string[]
 }
 
-interface AlternativesResponse {
+interface MedicineAlternative {
+  id: string
+  name: string
+  genericName: string
+  category: string
+  manufacturer: string
+  stock: number
+  price: number
+  dosage: string
+  unit: string
+  prescriptionRequired: boolean
+  similarityScore: number
+  aiReasoning: string
+  compatibilityScore: number
+  sideEffects: string[]
+  contraindications: string[]
+}
+
+interface AIAlternativesResponse {
   success: boolean
   data?: {
     originalMedicine: string
-    alternatives: any[]
+    requestedQuantity: number
+    alternatives: MedicineAlternative[]
     totalAlternatives: number
     aiAnalysis: string
     stockStatus: 'available' | 'partial' | 'unavailable'
@@ -28,14 +46,13 @@ interface AlternativesResponse {
   error?: string
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse<AlternativesResponse>> {
+export async function POST(request: NextRequest): Promise<NextResponse<AIAlternativesResponse>> {
   try {
-    const body: AlternativesRequest = await request.json()
+    const body: AIAlternativesRequest = await request.json()
     const { 
       medicineName, 
-      category = 'General', 
-      requestedQuantity = 1, 
-      maxResults = 5,
+      requestedQuantity = 1,
+      category = 'General',
       patientAge,
       allergies = [],
       medicalConditions = []
@@ -52,7 +69,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<Alternati
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
     // Create AI context for medicine alternatives
-    const aiContext = `You are a medical AI assistant specializing in medicine alternatives and drug interactions. Your task is to analyze medicine requests and suggest appropriate alternatives.
+    const aiContext = `You are a medical AI assistant specializing in medicine alternatives and drug interactions. Your task is to analyze medicine requests and suggest appropriate alternatives based on:
+
+1. **Therapeutic Equivalence**: Medicines with similar active ingredients or mechanisms of action
+2. **Drug Interactions**: Consider patient allergies and medical conditions
+3. **Dosage Equivalence**: Ensure similar therapeutic effects
+4. **Safety Profile**: Consider age, allergies, and medical conditions
+5. **Availability**: Prioritize medicines that are in stock
 
 IMPORTANT RULES:
 - Always provide **crisp, clear responses** without confusion
@@ -68,7 +91,10 @@ Available medicines in database: ${medicines.map(m => `${m.name} (${m.genericNam
 Patient Information:
 - Age: ${patientAge || 'Not specified'}
 - Allergies: ${allergies.length > 0 ? allergies.join(', ') : 'None specified'}
-- Medical Conditions: ${medicalConditions.length > 0 ? medicalConditions.join(', ') : 'None specified'}
+- Medical Conditions: ${medicalConditions.length > 0 ? medicalConditions.join(', ') : 'None specified'}`
+
+    // Build the prompt
+    const prompt = `${aiContext}
 
 Requested Medicine: **${medicineName}**
 Requested Quantity: ${requestedQuantity}
@@ -101,7 +127,7 @@ Format your response as:
 [If any medicines need to be ordered, provide a clear notification for the manager]`
 
     // Generate AI response
-    const result = await model.generateContent(aiContext)
+    const result = await model.generateContent(prompt)
     const response = await result.response
     const aiAnalysis = response.text()
 
@@ -118,6 +144,7 @@ Format your response as:
       success: true,
       data: {
         originalMedicine: medicineName,
+        requestedQuantity,
         alternatives,
         totalAlternatives: alternatives.length,
         aiAnalysis,
@@ -127,17 +154,18 @@ Format your response as:
     })
 
   } catch (error) {
-    console.error('Medicine alternatives error:', error)
+    console.error('AI Medicine Alternatives Error:', error)
+    
     return NextResponse.json({ 
       success: false, 
-      error: 'Failed to find alternatives' 
+      error: 'Failed to find AI-powered alternatives' 
     }, { status: 500 })
   }
 }
 
 // Helper function to process AI response and match with database
-async function processAIResponse(aiResponse: string, medicines: any[], requestedQuantity: number): Promise<any[]> {
-  const alternatives: any[] = []
+async function processAIResponse(aiResponse: string, medicines: any[], requestedQuantity: number): Promise<MedicineAlternative[]> {
+  const alternatives: MedicineAlternative[] = []
   
   // Extract medicine names from AI response
   const medicineMatches = aiResponse.match(/\*\*([^*]+)\*\*/g)
@@ -162,16 +190,6 @@ async function processAIResponse(aiResponse: string, medicines: any[], requested
         const similarityScore = similarityMatch ? parseInt(similarityMatch[1]) : 7
         const compatibilityScore = compatibilityMatch ? parseInt(compatibilityMatch[1]) : 8
         
-        // Extract AI reasoning for this specific medicine
-        const reasoningPattern = new RegExp(`${medicineName}[\\s\\S]*?Reasoning:\\s*([^\\n-•]+)`, 'i')
-        const reasoningMatch = aiResponse.match(reasoningPattern)
-        const aiReasoning = reasoningMatch ? reasoningMatch[1].trim() : `AI-suggested alternative based on therapeutic equivalence and safety profile`
-        
-        // Extract warnings
-        const warningsPattern = new RegExp(`${medicineName}[\\s\\S]*?Warnings?:\\s*([^\\n-•]+)`, 'i')
-        const warningsMatch = aiResponse.match(warningsPattern)
-        const warnings = warningsMatch ? warningsMatch[1].trim() : (dbMedicine.contraindications && dbMedicine.contraindications.length > 0 ? `Contraindicated in: ${dbMedicine.contraindications.join(', ')}` : undefined)
-        
         alternatives.push({
           id: dbMedicine.id,
           name: dbMedicine.name,
@@ -184,12 +202,10 @@ async function processAIResponse(aiResponse: string, medicines: any[], requested
           unit: dbMedicine.unit,
           prescriptionRequired: dbMedicine.prescriptionRequired,
           similarityScore,
-          aiReasoning,
+          aiReasoning: `AI-suggested alternative based on therapeutic equivalence and safety profile`,
           compatibilityScore,
-          sideEffects: dbMedicine.sideEffects || [],
-          warnings,
-          contraindications: dbMedicine.contraindications,
-          supplier: dbMedicine.supplier
+          sideEffects: dbMedicine.sideEffects,
+          contraindications: dbMedicine.contraindications
         })
       }
     }
@@ -204,7 +220,7 @@ async function processAIResponse(aiResponse: string, medicines: any[], requested
 }
 
 // Helper function to determine stock status
-function determineStockStatus(alternatives: any[], requestedQuantity: number): 'available' | 'partial' | 'unavailable' {
+function determineStockStatus(alternatives: MedicineAlternative[], requestedQuantity: number): 'available' | 'partial' | 'unavailable' {
   const availableAlternatives = alternatives.filter(alt => alt.stock >= requestedQuantity)
   
   if (availableAlternatives.length === alternatives.length) {
@@ -217,7 +233,7 @@ function determineStockStatus(alternatives: any[], requestedQuantity: number): '
 }
 
 // Helper function to generate manager notification
-function generateManagerNotification(alternatives: any[], originalMedicine: string, requestedQuantity: number): string | null {
+function generateManagerNotification(alternatives: MedicineAlternative[], originalMedicine: string, requestedQuantity: number): string | null {
   const outOfStockAlternatives = alternatives.filter(alt => alt.stock < requestedQuantity)
   
   if (outOfStockAlternatives.length > 0) {

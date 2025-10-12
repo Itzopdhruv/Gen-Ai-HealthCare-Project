@@ -78,7 +78,7 @@ Instructions:
           console.log(`✅ Success with model: ${modelName}`)
           break
         } catch (error) {
-          console.log(`❌ Failed with model ${modelName}:`, error.message)
+          console.log(`❌ Failed with model ${modelName}:`, (error as Error).message)
           lastError = error
           continue
         }

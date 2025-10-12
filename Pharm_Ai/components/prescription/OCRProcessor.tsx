@@ -30,22 +30,31 @@ interface PatientInfo {
   name?: string
   age?: string
   doctor?: string
+  allergies?: string
+  medicalConditions?: string
 }
 
 interface OCRProcessorProps {
   onMedicinesExtracted: (medicines: ExtractedMedicine[], patientInfo: PatientInfo) => void
   onClose: () => void
+  initialMedicines?: ExtractedMedicine[]
+  initialPatientInfo?: PatientInfo
 }
 
-const OCRProcessor = ({ onMedicinesExtracted, onClose }: OCRProcessorProps) => {
+const OCRProcessor = ({ onMedicinesExtracted, onClose, initialMedicines, initialPatientInfo }: OCRProcessorProps) => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [extractedData, setExtractedData] = useState<{
     rawText: string
     medicines: ExtractedMedicine[]
     patientInfo: PatientInfo
-  } | null>(null)
+  } | null>(initialMedicines && initialPatientInfo ? {
+    rawText: 'Pre-loaded prescription data',
+    medicines: initialMedicines,
+    patientInfo: initialPatientInfo
+  } : null)
   const [editingMedicine, setEditingMedicine] = useState<number | null>(null)
-  const [editedMedicines, setEditedMedicines] = useState<ExtractedMedicine[]>([])
+  const [editedMedicines, setEditedMedicines] = useState<ExtractedMedicine[]>(initialMedicines || [])
+  const [editedPatientInfo, setEditedPatientInfo] = useState<PatientInfo>(initialPatientInfo || {})
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleImageUpload = async (file: File) => {
@@ -74,6 +83,7 @@ const OCRProcessor = ({ onMedicinesExtracted, onClose }: OCRProcessorProps) => {
       if (result.success) {
         setExtractedData(result.data)
         setEditedMedicines(result.data.medicines)
+        setEditedPatientInfo(result.data.patientInfo || {})
         toast.success('Prescription processed successfully!')
       } else {
         toast.error(result.error || 'Failed to process prescription')
@@ -127,7 +137,7 @@ const OCRProcessor = ({ onMedicinesExtracted, onClose }: OCRProcessorProps) => {
       return
     }
 
-    onMedicinesExtracted(editedMedicines, extractedData?.patientInfo || {})
+    onMedicinesExtracted(editedMedicines, editedPatientInfo)
     toast.success('Medicines confirmed!')
   }
 
@@ -231,34 +241,76 @@ const OCRProcessor = ({ onMedicinesExtracted, onClose }: OCRProcessorProps) => {
             /* Results Section */
             <div className="space-y-6">
               {/* Patient Info */}
-              {extractedData.patientInfo && (
-                <div className="card">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
-                    <User className="w-5 h-5" />
-                    <span>Patient Information</span>
-                  </h3>
+              <div className="card">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                  <User className="w-5 h-5" />
+                  <span>Patient Information</span>
+                </h3>
+                <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {extractedData.patientInfo.name && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Patient Name</p>
-                        <p className="text-gray-900">{extractedData.patientInfo.name}</p>
-                      </div>
-                    )}
-                    {extractedData.patientInfo.age && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Age</p>
-                        <p className="text-gray-900">{extractedData.patientInfo.age}</p>
-                      </div>
-                    )}
-                    {extractedData.patientInfo.doctor && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Doctor</p>
-                        <p className="text-gray-900">{extractedData.patientInfo.doctor}</p>
-                      </div>
-                    )}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Patient Name</label>
+                      <input
+                        type="text"
+                        value={editedPatientInfo.name || ''}
+                        onChange={(e) => setEditedPatientInfo({...editedPatientInfo, name: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter patient name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                      <input
+                        type="text"
+                        value={editedPatientInfo.age || ''}
+                        onChange={(e) => setEditedPatientInfo({...editedPatientInfo, age: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter age"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Doctor</label>
+                      <input
+                        type="text"
+                        value={editedPatientInfo.doctor || ''}
+                        onChange={(e) => setEditedPatientInfo({...editedPatientInfo, doctor: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter doctor name"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <span className="text-red-600 mr-1">⚠️</span>
+                        Allergies (comma-separated)
+                      </label>
+                      <input
+                        type="text"
+                        value={editedPatientInfo.allergies || ''}
+                        onChange={(e) => setEditedPatientInfo({...editedPatientInfo, allergies: e.target.value})}
+                        className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        placeholder="e.g., Aspirin, Penicillin, NSAIDs"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Important for safe alternative suggestions</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Medical Conditions (comma-separated)
+                      </label>
+                      <input
+                        type="text"
+                        value={editedPatientInfo.medicalConditions || ''}
+                        onChange={(e) => setEditedPatientInfo({...editedPatientInfo, medicalConditions: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="e.g., Diabetes, Hypertension, Kidney Disease"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Helps identify contraindications</p>
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Extracted Medicines */}
               <div className="card">
@@ -365,6 +417,11 @@ const OCRProcessor = ({ onMedicinesExtracted, onClose }: OCRProcessorProps) => {
                             duration: '',
                             confidence: 'low'
                           }
+                          setExtractedData({
+                            rawText: '',
+                            medicines: [newMedicine],
+                            patientInfo: {}
+                          })
                           setEditedMedicines([newMedicine])
                           setEditingMedicine(0)
                         }}

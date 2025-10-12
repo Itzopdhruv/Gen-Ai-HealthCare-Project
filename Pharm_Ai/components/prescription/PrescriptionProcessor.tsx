@@ -44,13 +44,20 @@ interface AlternativeMedicine {
   price: number
   similarity: number
   reason: string
+  sideEffects?: string[]
+  warnings?: string
+  aiReasoning?: string
+  compatibilityScore?: number
 }
 
 interface PrescriptionProcessorProps {
   medicines: ExtractedMedicine[]
   patientInfo: {
     name?: string
+    age?: string
     doctor?: string
+    allergies?: string
+    medicalConditions?: string
   }
   onClose: () => void
   onPrescriptionProcessed: (prescriptionId: string) => void
@@ -65,14 +72,20 @@ const PrescriptionProcessor: React.FC<PrescriptionProcessorProps> = ({
   const [currentStep, setCurrentStep] = useState<'checking' | 'alternatives' | 'billing' | 'processing'>('checking')
   const [inventoryCheck, setInventoryCheck] = useState<InventoryCheck[]>([])
   const [alternatives, setAlternatives] = useState<any[]>([])
+  const [basicAlternatives, setBasicAlternatives] = useState<any[]>([])
+  const [isLoadingAdvanced, setIsLoadingAdvanced] = useState(false)
   const [selectedAlternatives, setSelectedAlternatives] = useState<Record<string, AlternativeMedicine>>({})
   const [partialFulfillment, setPartialFulfillment] = useState<Record<string, { enabled: boolean; quantity: number }>>({})
   const [totalCost, setTotalCost] = useState(0)
   const [canProcess, setCanProcess] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [drugInteractionWarnings, setDrugInteractionWarnings] = useState<any[]>([])
+  const hasRunRef = React.useRef(false)
 
   // Process prescription when component mounts
   React.useEffect(() => {
+    if (hasRunRef.current) return
+    hasRunRef.current = true
     const timeoutId = setTimeout(() => {
       console.log('Processing timeout - moving to alternatives step')
       setCurrentStep('alternatives')
@@ -120,12 +133,61 @@ const PrescriptionProcessor: React.FC<PrescriptionProcessorProps> = ({
         console.log('Setting inventory check:', result.data.inventoryCheck)
         setInventoryCheck(result.data.inventoryCheck)
         setAlternatives(result.data.alternatives)
+        setBasicAlternatives(result.data.alternatives)
         setTotalCost(result.data.totalCost)
         setCanProcess(result.data.canProcess)
+        
+        // Check for drug interactions
+        try {
+          console.log('Checking for drug interactions...')
+          const interactionResponse = await fetch('/api/prescription/validate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              medicines: medicines.map(med => ({
+                name: med.name,
+                dosage: med.dosage,
+                quantity: med.quantity
+              })),
+              patientInfo: {
+                age: patientInfo.age ? parseInt(patientInfo.age) : undefined,
+                allergies: patientInfo.allergies ? patientInfo.allergies.split(',').map(a => a.trim()).filter(a => a) : [],
+                medicalConditions: patientInfo.medicalConditions ? patientInfo.medicalConditions.split(',').map(c => c.trim()).filter(c => c) : []
+              }
+            }),
+          })
+
+          const interactionResult = await interactionResponse.json()
+          console.log('🔍 Frontend received interaction result:', interactionResult)
+          
+          if (interactionResult.success && interactionResult.data) {
+            console.log('✅ Data received:', {
+              warnings: interactionResult.data.warnings?.length || 0,
+              sideEffects: interactionResult.data.sideEffects?.length || 0,
+              risk: interactionResult.data.overallRisk
+            })
+            
+            if (interactionResult.data.warnings && interactionResult.data.warnings.length > 0) {
+              console.log('🚨 Setting warnings:', interactionResult.data.warnings)
+              setDrugInteractionWarnings(interactionResult.data.warnings)
+            } else {
+              console.log('ℹ️ No warnings found')
+            }
+          } else {
+            console.log('❌ No data or failed response')
+          }
+        } catch (error) {
+          console.error('❌ Failed to check drug interactions:', error)
+        }
         
         // If there are missing medicines, try to get advanced alternatives
         if (!result.data.canProcess && result.data.missingMedicines.length > 0) {
           try {
+            setIsLoadingAdvanced(true)
+            // Hide basic list while AI alternatives load to avoid flashing 0% matches
+            setAlternatives([])
             const advancedResponse = await fetch('/api/prescriptions/advanced-alternatives', {
               method: 'POST',
               headers: {
@@ -133,32 +195,39 @@ const PrescriptionProcessor: React.FC<PrescriptionProcessorProps> = ({
               },
               body: JSON.stringify({
                 medicines: result.data.inventoryCheck
-                  .filter(check => !check.isAvailable)
-                  .map(check => ({
+                  .filter((check: any) => !check.isAvailable)
+                  .map((check: any) => ({
                     name: check.medicineName,
                     category: check.category,
                     requestedQuantity: check.requestedQuantity
-                  }))
+                  })),
+                patientInfo: {
+                  age: patientInfo.age ? parseInt(patientInfo.age) : undefined,
+                  allergies: patientInfo.allergies ? patientInfo.allergies.split(',').map(a => a.trim()).filter(a => a) : [],
+                  medicalConditions: patientInfo.medicalConditions ? patientInfo.medicalConditions.split(',').map(c => c.trim()).filter(c => c) : []
+                }
               }),
             })
 
             const advancedResult = await advancedResponse.json()
             if (advancedResult.success && advancedResult.data.alternatives.length > 0) {
               setAlternatives(advancedResult.data.alternatives)
+            } else {
+              setAlternatives(basicAlternatives)
             }
           } catch (error) {
             console.log('Advanced alternatives not available, using basic alternatives')
+            setAlternatives(basicAlternatives)
+          } finally {
+            setIsLoadingAdvanced(false)
           }
         }
         
         console.log('Can process:', result.data.canProcess)
-        if (result.data.canProcess) {
-          console.log('Moving to billing step')
-          setCurrentStep('billing')
-        } else {
-          console.log('Moving to alternatives step')
-          setCurrentStep('alternatives')
-        }
+        // ALWAYS go to alternatives screen to show drug interaction warnings
+        // Even if all medicines are in stock, there might be critical warnings
+        console.log('Moving to alternatives step (to show warnings and alternatives)')
+        setCurrentStep('alternatives')
       } else {
         console.error('API error:', result.error)
         toast.error(result.error || 'Failed to process prescription')
@@ -284,10 +353,7 @@ const PrescriptionProcessor: React.FC<PrescriptionProcessorProps> = ({
 
       if (result.success) {
         toast.success('Prescription processed successfully!')
-        onPrescriptionProcessed(result.data.prescriptionId, {
-          totalAmount: result.data.totalAmount,
-          processedMedicines: result.data.processedMedicines
-        })
+        onPrescriptionProcessed(result.data.prescriptionId)
         onClose()
       } else {
         toast.error(result.error || 'Failed to finalize prescription')
@@ -390,11 +456,104 @@ const PrescriptionProcessor: React.FC<PrescriptionProcessorProps> = ({
 
           {currentStep === 'alternatives' && (
             <div className="space-y-6">
-              <div className="text-center mb-6">
-                <AlertTriangle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Some Medicines Unavailable</h3>
-                <p className="text-gray-600">We found alternative medicines that are in stock</p>
-              </div>
+              {/* Show different title based on whether medicines are unavailable or just showing drug warnings */}
+              {alternatives.length > 0 ? (
+                <div className="text-center mb-6">
+                  <AlertTriangle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Some Medicines Unavailable</h3>
+                  <p className="text-gray-600">We found alternative medicines that are in stock</p>
+                </div>
+              ) : drugInteractionWarnings.length > 0 ? (
+                <div className="text-center mb-6">
+                  <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Drug Interaction Warnings</h3>
+                  <p className="text-gray-600">Critical safety warnings detected for this prescription</p>
+                </div>
+              ) : (
+                <div className="text-center mb-6">
+                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">All Medicines Available</h3>
+                  <p className="text-gray-600">All prescribed medicines are in stock</p>
+                </div>
+              )}
+
+              {/* Drug Interaction Warnings */}
+              {drugInteractionWarnings.length > 0 && (
+                <div className="space-y-3">
+                  {drugInteractionWarnings.map((warning, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`p-4 rounded-lg border-2 ${
+                        warning.type === 'critical' 
+                          ? 'bg-red-50 border-red-300' 
+                          : warning.type === 'warning'
+                          ? 'bg-yellow-50 border-yellow-300'
+                          : 'bg-blue-50 border-blue-300'
+                      }`}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <AlertTriangle className={`w-6 h-6 flex-shrink-0 ${
+                          warning.type === 'critical' 
+                            ? 'text-red-600' 
+                            : warning.type === 'warning'
+                            ? 'text-yellow-600'
+                            : 'text-blue-600'
+                        }`} />
+                        <div className="flex-1">
+                          <h4 className={`font-bold text-sm mb-1 ${
+                            warning.type === 'critical' 
+                              ? 'text-red-900' 
+                              : warning.type === 'warning'
+                              ? 'text-yellow-900'
+                              : 'text-blue-900'
+                          }`}>
+                            {warning.title}
+                          </h4>
+                          <p className={`text-sm mb-2 ${
+                            warning.type === 'critical' 
+                              ? 'text-red-800' 
+                              : warning.type === 'warning'
+                              ? 'text-yellow-800'
+                              : 'text-blue-800'
+                          }`}>
+                            {warning.message}
+                          </p>
+                          <p className={`text-xs font-medium ${
+                            warning.type === 'critical' 
+                              ? 'text-red-700' 
+                              : warning.type === 'warning'
+                              ? 'text-yellow-700'
+                              : 'text-blue-700'
+                          }`}>
+                            <strong>Action:</strong> {warning.action}
+                          </p>
+                          {warning.medicines && warning.medicines.length > 0 && (
+                            <p className={`text-xs mt-2 ${
+                              warning.type === 'critical' 
+                                ? 'text-red-600' 
+                                : warning.type === 'warning'
+                                ? 'text-yellow-600'
+                                : 'text-blue-600'
+                            }`}>
+                              <strong>Medicines:</strong> {warning.medicines.join(' + ')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isLoadingAdvanced && (
+                <div className="card">
+                  <div className="flex items-center space-x-3">
+                    <RefreshCw className="w-5 h-5 animate-spin text-blue-600" />
+                    <p className="text-sm text-blue-700">Finding AI-powered alternatives and safety warnings...</p>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">This can take a few seconds. We’ll replace the list below with AI-verified suggestions.</p>
+                </div>
+              )}
 
               {alternatives.map((altGroup, index) => (
                 <div key={index} className="card">
@@ -427,7 +586,40 @@ const PrescriptionProcessor: React.FC<PrescriptionProcessorProps> = ({
                           <div className="flex-1">
                             <h6 className="font-medium text-gray-900">{alt.name}</h6>
                             <p className="text-sm text-gray-600">{alt.dosage} • {alt.category}</p>
-                            <p className="text-xs text-gray-500 mt-1">{alt.reason}</p>
+                            <p className="text-xs text-gray-700 mt-1">{alt.reason}</p>
+                            
+                            {/* Side Effects */}
+                            {alt.sideEffects && alt.sideEffects.length > 0 && (
+                              <div className="mt-2 p-2 bg-yellow-50 rounded border border-yellow-200">
+                                <p className="text-xs font-medium text-yellow-800 mb-1">⚠️ Common Side Effects:</p>
+                                <p className="text-xs text-yellow-700">{alt.sideEffects.join(', ')}</p>
+                              </div>
+                            )}
+                            
+                            {/* Warnings */}
+                            {alt.warnings && (
+                              <div className="mt-2 p-2 bg-red-50 rounded border border-red-200">
+                                <p className="text-xs font-medium text-red-800 mb-1">🚨 Important Warning:</p>
+                                <p className="text-xs text-red-700">{alt.warnings}</p>
+                              </div>
+                            )}
+                            
+                            {/* AI Reasoning */}
+                            {alt.aiReasoning && (
+                              <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                                <p className="text-xs font-medium text-blue-800 mb-1">🤖 AI Analysis:</p>
+                                <p className="text-xs text-blue-700">{alt.aiReasoning}</p>
+                              </div>
+                            )}
+                            
+                            {/* Compatibility Score */}
+                            {alt.compatibilityScore && (
+                              <div className="mt-2">
+                                <p className="text-xs text-gray-600">
+                                  Compatibility: <span className={`font-medium ${alt.compatibilityScore >= 8 ? 'text-green-600' : alt.compatibilityScore >= 6 ? 'text-yellow-600' : 'text-red-600'}`}>{alt.compatibilityScore}/10</span>
+                                </p>
+                              </div>
+                            )}
                             {alt.availableQuantity < (inventoryCheck.find(c => c.medicineName === altGroup.originalMedicine)?.requestedQuantity || 0) && (
                               <div className="mt-2 space-y-2">
                                 <p className="text-xs text-red-600 font-medium">
@@ -511,6 +703,74 @@ const PrescriptionProcessor: React.FC<PrescriptionProcessorProps> = ({
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Prescription Ready</h3>
                 <p className="text-gray-600">Review the details and confirm processing</p>
               </div>
+
+              {/* Drug Interaction Warnings */}
+              {drugInteractionWarnings.length > 0 && (
+                <div className="space-y-3">
+                  {drugInteractionWarnings.map((warning, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`p-4 rounded-lg border-2 ${
+                        warning.type === 'critical' 
+                          ? 'bg-red-50 border-red-300' 
+                          : warning.type === 'warning'
+                          ? 'bg-yellow-50 border-yellow-300'
+                          : 'bg-blue-50 border-blue-300'
+                      }`}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <AlertTriangle className={`w-6 h-6 flex-shrink-0 ${
+                          warning.type === 'critical' 
+                            ? 'text-red-600' 
+                            : warning.type === 'warning'
+                            ? 'text-yellow-600'
+                            : 'text-blue-600'
+                        }`} />
+                        <div className="flex-1">
+                          <h4 className={`font-bold text-sm mb-1 ${
+                            warning.type === 'critical' 
+                              ? 'text-red-900' 
+                              : warning.type === 'warning'
+                              ? 'text-yellow-900'
+                              : 'text-blue-900'
+                          }`}>
+                            {warning.title}
+                          </h4>
+                          <p className={`text-sm mb-2 ${
+                            warning.type === 'critical' 
+                              ? 'text-red-800' 
+                              : warning.type === 'warning'
+                              ? 'text-yellow-800'
+                              : 'text-blue-800'
+                          }`}>
+                            {warning.message}
+                          </p>
+                          <p className={`text-xs font-medium ${
+                            warning.type === 'critical' 
+                              ? 'text-red-700' 
+                              : warning.type === 'warning'
+                              ? 'text-yellow-700'
+                              : 'text-blue-700'
+                          }`}>
+                            <strong>Action:</strong> {warning.action}
+                          </p>
+                          {warning.medicines && warning.medicines.length > 0 && (
+                            <p className={`text-xs mt-2 ${
+                              warning.type === 'critical' 
+                                ? 'text-red-600' 
+                                : warning.type === 'warning'
+                                ? 'text-yellow-600'
+                                : 'text-blue-600'
+                            }`}>
+                              <strong>Medicines:</strong> {warning.medicines.join(' + ')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Patient Info */}
               <div className="card">

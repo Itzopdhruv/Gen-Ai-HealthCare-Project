@@ -1,4 +1,4 @@
-import { Medicine } from './database'
+import { Medicine } from '../database'
 import { VectorSearchService, SemanticSearchResult } from './vectorSearchService'
 
 export interface InventoryCheck {
@@ -99,7 +99,6 @@ export class EnhancedInventoryService {
       const searchResults = await this.vectorSearchService.findSimilarMedicines(
         medicineName,
         category,
-        requestedQuantity,
         maxResults * 2 // Get more results to filter
       )
 
@@ -125,8 +124,8 @@ export class EnhancedInventoryService {
           reason: result.reason,
           therapeuticMatch: result.therapeuticMatch,
           ingredientMatch: result.ingredientMatch,
-          activeIngredients: result.medicine.activeIngredients,
-          therapeuticClass: result.medicine.therapeuticClass
+          activeIngredients: result.medicine.activeIngredients || [],
+          therapeuticClass: result.medicine.therapeuticClass || ''
         }
       })
     } catch (error) {
@@ -191,8 +190,8 @@ export class EnhancedInventoryService {
           reason: result.reason,
           therapeuticMatch: false,
           ingredientMatch: false,
-          activeIngredients: result.medicine.activeIngredients,
-          therapeuticClass: result.medicine.therapeuticClass
+          activeIngredients: result.medicine.activeIngredients || [],
+          therapeuticClass: result.medicine.therapeuticClass || ''
         }
       })
     } catch (error) {
@@ -225,8 +224,7 @@ export class EnhancedInventoryService {
       if (medicineIndex !== -1) {
         updatedMedicines[medicineIndex] = {
           ...updatedMedicines[medicineIndex],
-          stock: Math.max(0, updatedMedicines[medicineIndex].stock - prescriptionMed.quantity),
-          lastUpdated: new Date().toISOString()
+          stock: Math.max(0, updatedMedicines[medicineIndex].stock - prescriptionMed.quantity)
         }
       }
     })

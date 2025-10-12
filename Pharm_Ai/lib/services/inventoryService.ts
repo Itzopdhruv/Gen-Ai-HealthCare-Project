@@ -1,4 +1,4 @@
-import { Medicine } from './database'
+import { Medicine } from '../database'
 
 export interface InventoryCheck {
   medicineName: string
@@ -155,8 +155,7 @@ export class InventoryService {
       if (medicineIndex !== -1) {
         updatedMedicines[medicineIndex] = {
           ...updatedMedicines[medicineIndex],
-          stock: Math.max(0, updatedMedicines[medicineIndex].stock - prescriptionMed.quantity),
-          lastUpdated: new Date().toISOString()
+          stock: Math.max(0, updatedMedicines[medicineIndex].stock - prescriptionMed.quantity)
         }
       }
     })

@@ -152,20 +152,80 @@ const Prescriptions = () => {
 
   const handleViewPrescription = (prescription: Prescription) => {
     console.log('View prescription:', prescription.id)
-    // TODO: Implement view prescription modal
-    toast('View prescription feature coming soon!', {
-      icon: 'ℹ️',
-      duration: 3000,
+    
+    // Convert prescription medicines to ExtractedMedicine format
+    const medicines: ExtractedMedicine[] = prescription.medicines.map((med, index) => {
+      // Extract dosage from medicine name (e.g., "Lisinopril 10mg" -> "10mg")
+      const dosageMatch = med.match(/(\d+(?:\.\d+)?(?:mg|ml|g|mcg))/i)
+      const dosage = dosageMatch ? dosageMatch[1] : '500mg'
+      
+      // Remove dosage from medicine name (e.g., "Lisinopril 10mg" -> "Lisinopril")
+      const cleanName = med.replace(/\s*\d+(?:\.\d+)?(?:mg|ml|g|mcg)\s*/gi, '').trim()
+      
+      return {
+        name: cleanName,
+        dosage: dosage,
+        quantity: 1,
+        instructions: prescription.notes || 'As directed',
+        frequency: 'As directed',
+        duration: '5 days',
+        confidence: 'high' as const
+      }
     })
+    
+    // Set patient info
+    const patientData = {
+      name: prescription.patientName,
+      doctor: prescription.doctorName,
+      age: '',
+      allergies: '',
+      medicalConditions: ''
+    }
+    
+    setExtractedMedicines(medicines)
+    setPatientInfo(patientData)
+    setShowOCRProcessor(true)
+    
+    toast.success('Opening prescription for review')
   }
 
   const handleEditPrescription = (prescription: Prescription) => {
     console.log('Edit prescription:', prescription.id)
-    // TODO: Implement edit prescription modal
-    toast('Edit prescription feature coming soon!', {
-      icon: 'ℹ️',
-      duration: 3000,
+    
+    // Convert prescription medicines to ExtractedMedicine format
+    const medicines: ExtractedMedicine[] = prescription.medicines.map((med, index) => {
+      // Extract dosage from medicine name (e.g., "Lisinopril 10mg" -> "10mg")
+      const dosageMatch = med.match(/(\d+(?:\.\d+)?(?:mg|ml|g|mcg))/i)
+      const dosage = dosageMatch ? dosageMatch[1] : '500mg'
+      
+      // Remove dosage from medicine name (e.g., "Lisinopril 10mg" -> "Lisinopril")
+      const cleanName = med.replace(/\s*\d+(?:\.\d+)?(?:mg|ml|g|mcg)\s*/gi, '').trim()
+      
+      return {
+        name: cleanName,
+        dosage: dosage,
+        quantity: 1,
+        instructions: prescription.notes || 'As directed',
+        frequency: 'As directed',
+        duration: '5 days',
+        confidence: 'high' as const
+      }
     })
+    
+    // Set patient info
+    const patientData = {
+      name: prescription.patientName,
+      doctor: prescription.doctorName,
+      age: '',
+      allergies: '',
+      medicalConditions: ''
+    }
+    
+    setExtractedMedicines(medicines)
+    setPatientInfo(patientData)
+    setShowOCRProcessor(true)
+    
+    toast.success('Opening prescription for editing')
   }
 
   return (
@@ -350,7 +410,13 @@ const Prescriptions = () => {
           {showOCRProcessor && (
             <OCRProcessor
               onMedicinesExtracted={handleMedicinesExtracted}
-              onClose={() => setShowOCRProcessor(false)}
+              onClose={() => {
+                setShowOCRProcessor(false)
+                setExtractedMedicines([])
+                setPatientInfo({})
+              }}
+              initialMedicines={extractedMedicines.length > 0 ? extractedMedicines : undefined}
+              initialPatientInfo={Object.keys(patientInfo).length > 0 ? patientInfo : undefined}
             />
           )}
 

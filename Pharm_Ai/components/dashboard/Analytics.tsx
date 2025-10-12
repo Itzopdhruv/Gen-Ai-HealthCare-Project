@@ -67,7 +67,7 @@ const Analytics = () => {
         <div className="flex items-center space-x-2">
           <select
             value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
+            onChange={(e) => setSelectedPeriod(e.target.value as "7d" | "30d" | "90d" | "1y")}
             className="input-field min-w-[120px]"
           >
             <option value="7d">Last 7 days</option>

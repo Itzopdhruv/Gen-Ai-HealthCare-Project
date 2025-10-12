@@ -48,7 +48,7 @@ const AIDoctor = ({ onClose, onLogout }: AIDoctorProps) => {
     scrollToBottom()
   }, [messages])
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputValue.trim()) return
 
     const newMessage: Message = {
@@ -59,18 +59,60 @@ const AIDoctor = ({ onClose, onLogout }: AIDoctorProps) => {
     }
 
     setMessages(prev => [...prev, newMessage])
+    const currentInput = inputValue
     setInputValue('')
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'ai',
-        content: 'I understand your question. Let me analyze that for you and provide a comprehensive response based on medical best practices and available data.',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
-      setMessages(prev => [...prev, aiResponse])
-    }, 1000)
+    // Add loading message
+    const loadingMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      type: 'ai',
+      content: 'Thinking...',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+    setMessages(prev => [...prev, loadingMessage])
+
+    try {
+      // Call AI API
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: currentInput,
+          history: messages.slice(0, -1) // Exclude the loading message
+        })
+      })
+
+      const data = await response.json()
+
+      // Remove loading message and add AI response
+      setMessages(prev => {
+        const withoutLoading = prev.slice(0, -1)
+        const aiResponse: Message = {
+          id: (Date.now() + 2).toString(),
+          type: 'ai',
+          content: data.response || 'I apologize, but I encountered an error processing your request.',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+        return [...withoutLoading, aiResponse]
+      })
+
+    } catch (error) {
+      console.error('AI Chat Error:', error)
+      
+      // Remove loading message and add error response
+      setMessages(prev => {
+        const withoutLoading = prev.slice(0, -1)
+        const errorResponse: Message = {
+          id: (Date.now() + 2).toString(),
+          type: 'ai',
+          content: 'I apologize, but I\'m experiencing technical difficulties. Please try again in a moment.',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+        return [...withoutLoading, errorResponse]
+      })
+    }
   }
 
   const handleVoiceInput = () => {
@@ -95,6 +137,32 @@ const AIDoctor = ({ onClose, onLogout }: AIDoctorProps) => {
   const testSpeech = () => {
     // Speech synthesis logic would go here
     console.log('Testing speech synthesis')
+  }
+
+  // Helper function to format AI responses with proper styling
+  const formatMessage = (content: string) => {
+    // Convert markdown-style formatting to HTML
+    let formatted = content
+      // Convert bold text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      // Convert italic text
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      // Convert bullet points (• and -)
+      .replace(/^• (.+)$/gm, '<li>$1</li>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      // Convert numbered lists
+      .replace(/^(\d+)\. (.+)$/gm, '<li><strong>$1.</strong> $2</li>')
+      // Convert section headers
+      .replace(/^### (.+)$/gm, '<h3 class="font-semibold text-gray-900 mt-4 mb-2">$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2 class="font-bold text-gray-900 mt-4 mb-2">$1</h2>')
+      // Convert line breaks
+      .replace(/\n\n/g, '</p><p class="mb-2">')
+      .replace(/\n/g, '<br>')
+    
+    // Wrap in paragraph tags and add proper structure
+    formatted = `<div class="prose prose-sm max-w-none"><p class="mb-2">${formatted}</p></div>`
+    
+    return formatted
   }
 
   return (
@@ -147,8 +215,15 @@ const AIDoctor = ({ onClose, onLogout }: AIDoctorProps) => {
               exit={{ opacity: 0, y: -20 }}
               className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`max-w-xs ${message.type === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'}`}>
-                <p className="text-sm">{message.content}</p>
+              <div className={`${message.type === 'user' ? 'max-w-xs chat-bubble-user' : 'max-w-4xl chat-bubble-ai-full'}`}>
+                {message.type === 'ai' ? (
+                  <div 
+                    className="text-sm"
+                    dangerouslySetInnerHTML={{ __html: formatMessage(message.content) }}
+                  />
+                ) : (
+                  <p className="text-sm">{message.content}</p>
+                )}
                 <p className="text-xs text-gray-500 mt-1">{message.timestamp}</p>
               </div>
             </motion.div>

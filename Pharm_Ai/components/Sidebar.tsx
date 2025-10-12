@@ -6,7 +6,8 @@ import {
   Pill, 
   Settings, 
   LogOut,
-  User
+  User,
+  Brain
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 
@@ -22,6 +23,7 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout }: SidebarProps) => {
     { id: 'inventory', label: 'Inventory', icon: Pill },
     { id: 'prescriptions', label: 'Prescriptions', icon: FileText },
     { id: 'analytics', label: 'Analytics', icon: Settings },
+    { id: 'ai-analytics', label: 'AI Analytics', icon: Brain, isExternal: true },
   ]
 
   return (
@@ -58,18 +60,31 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout }: SidebarProps) => {
       <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon
+          const handleClick = () => {
+            if (item.isExternal) {
+              window.location.href = `/${item.id}`
+            } else {
+              setActiveTab(item.id)
+            }
+          }
+          
           return (
             <motion.button
               key={item.id}
               whileHover={{ x: 4 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setActiveTab(item.id)}
+              onClick={handleClick}
               className={`sidebar-item w-full ${
                 activeTab === item.id ? 'active' : ''
-              }`}
+              } ${item.isExternal ? 'text-blue-600 hover:bg-blue-50' : ''}`}
             >
               <Icon className="w-5 h-5 mr-3" />
               <span className="font-medium">{item.label}</span>
+              {item.isExternal && (
+                <span className="ml-auto text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
+                  NEW
+                </span>
+              )}
             </motion.button>
           )
         })}

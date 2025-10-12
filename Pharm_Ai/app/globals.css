@@ -69,6 +69,56 @@
   .chat-bubble-ai {
     @apply bg-white text-gray-800 p-3 rounded-2xl rounded-bl-sm max-w-xs shadow-sm border;
   }
+  
+  .chat-bubble-ai-full {
+    @apply bg-white text-gray-800 p-4 rounded-2xl rounded-bl-sm max-w-4xl shadow-sm border;
+  }
+  
+  /* AI Response Formatting */
+  .chat-bubble-ai .prose,
+  .chat-bubble-ai-full .prose {
+    @apply text-sm;
+  }
+  
+  .chat-bubble-ai strong,
+  .chat-bubble-ai-full strong {
+    @apply font-semibold text-gray-900;
+  }
+  
+  .chat-bubble-ai em,
+  .chat-bubble-ai-full em {
+    @apply italic text-gray-700;
+  }
+  
+  .chat-bubble-ai li,
+  .chat-bubble-ai-full li {
+    @apply mb-1 ml-4;
+  }
+  
+  .chat-bubble-ai ul,
+  .chat-bubble-ai-full ul {
+    @apply list-disc list-inside space-y-1 my-2;
+  }
+  
+  .chat-bubble-ai ol,
+  .chat-bubble-ai-full ol {
+    @apply list-decimal list-inside space-y-1 my-2;
+  }
+  
+  .chat-bubble-ai p,
+  .chat-bubble-ai-full p {
+    @apply mb-2;
+  }
+  
+  .chat-bubble-ai h2,
+  .chat-bubble-ai-full h2 {
+    @apply font-bold text-gray-900 mt-4 mb-2 text-base;
+  }
+  
+  .chat-bubble-ai h3,
+  .chat-bubble-ai-full h3 {
+    @apply font-semibold text-gray-900 mt-3 mb-2 text-sm;
+  }
 }
 
 /* Custom scrollbar */

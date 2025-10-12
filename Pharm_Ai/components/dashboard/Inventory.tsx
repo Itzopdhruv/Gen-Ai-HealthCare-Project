@@ -20,6 +20,7 @@ import { useMedicines, useInventoryActions } from '@/lib/hooks/useMedicines'
 import { Medicine } from '@/lib/database'
 import toast from 'react-hot-toast'
 import AddMedicineModal from '@/components/modals/AddMedicineModal'
+import RestockModal from '@/components/modals/RestockModal'
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -371,6 +372,17 @@ const Inventory = () => {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSave={handleAddMedicine}
+        loading={actionLoading}
+      />
+
+      <RestockModal
+        isOpen={showStockModal}
+        onClose={() => {
+          setShowStockModal(false)
+          setSelectedMedicine(null)
+        }}
+        medicine={selectedMedicine}
+        onRestock={handleUpdateStock}
         loading={actionLoading}
       />
     </div>

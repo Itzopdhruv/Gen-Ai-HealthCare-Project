@@ -271,7 +271,7 @@ function generateMonthlyTrends(medicines: any[], transactions: any[], startDate:
 }
 
 function generateStockAlerts(medicines: any[]) {
-  const alerts = []
+  const alerts: any[] = []
   
   medicines.forEach(medicine => {
     if (medicine.stock === 0) {
