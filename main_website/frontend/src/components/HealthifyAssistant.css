@@ -1,0 +1,806 @@
+/* Healthify AI Assistant Styles */
+.healthify-assistant {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+  margin: 20px 0;
+}
+
+.healthify-assistant::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+  border-radius: 20px;
+  pointer-events: none;
+}
+
+/* Header Styles */
+.healthify-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 2;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-icon {
+  width: 56px;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.header-icon .anticon {
+  font-size: 28px;
+  color: white;
+}
+
+.header-text {
+  color: white;
+}
+
+.header-title {
+  color: white !important;
+  margin: 0 !important;
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-subtitle {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 16px;
+  margin: 0;
+}
+
+.analyze-button {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+  backdrop-filter: blur(10px);
+  border-radius: 12px !important;
+  height: 48px;
+  padding: 0 24px;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.analyze-button:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Loading Styles */
+.analysis-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: white;
+  position: relative;
+  z-index: 2;
+}
+
+.loading-text {
+  margin-top: 16px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+/* Recommendations Section */
+.recommendations-section {
+  position: relative;
+  z-index: 2;
+}
+
+.section-title {
+  color: white !important;
+  margin-bottom: 20px !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Recommendation Cards */
+.recommendation-card {
+  background: rgba(255, 255, 255, 0.25) !important;
+  border: 2px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 20px !important;
+  backdrop-filter: blur(25px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.recommendation-card .ant-card-body {
+  padding: 20px !important;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.recommendation-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  background: rgba(255, 255, 255, 0.35) !important;
+}
+
+.recommendation-card:hover .card-title {
+  background: rgba(255, 255, 255, 1) !important;
+  transform: scale(1.05);
+}
+
+.recommendation-card:hover .card-text {
+  background: rgba(255, 255, 255, 1) !important;
+  transform: scale(1.02);
+}
+
+.card-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.card-icon .anticon {
+  font-size: 24px;
+  color: white;
+}
+
+.card-content {
+  color: white;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.card-title {
+  color: #1a365d !important;
+  margin-bottom: 16px !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease !important;
+}
+
+.card-text {
+  color: #2c3e50 !important;
+  font-size: 16px !important;
+  line-height: 1.7 !important;
+  margin: 0 !important;
+  font-weight: 500 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  padding: 12px !important;
+  border-radius: 8px !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease !important;
+  flex: 1;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+}
+
+/* Analysis Summary */
+.analysis-summary {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.analysis-title {
+  color: white !important;
+  margin-bottom: 16px !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.analyzed-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.metric-analysis {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  min-width: 200px;
+}
+
+.metric-analysis .metric-name {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  flex: 1;
+}
+
+.metric-analysis .metric-value {
+  font-size: 16px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.metric-analysis .metric-status {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.analysis-note {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 14px !important;
+  font-style: italic;
+  text-align: center;
+  display: block;
+}
+
+/* Equal Height Cards */
+.recommendations-section .ant-row {
+  display: flex;
+  align-items: stretch;
+}
+
+.recommendations-section .ant-col {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Specific card colors */
+.diet-card {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.2) 0%, rgba(255, 255, 255, 0.25) 100%) !important;
+}
+
+.diet-card .card-icon {
+  background: rgba(76, 175, 80, 0.4) !important;
+  border-color: rgba(76, 175, 80, 0.6) !important;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3) !important;
+}
+
+.exercise-card {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.2) 0%, rgba(255, 255, 255, 0.25) 100%) !important;
+}
+
+.exercise-card .card-icon {
+  background: rgba(255, 152, 0, 0.4) !important;
+  border-color: rgba(255, 152, 0, 0.6) !important;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3) !important;
+}
+
+.lifestyle-card {
+  background: linear-gradient(135deg, rgba(33, 150, 243, 0.2) 0%, rgba(255, 255, 255, 0.25) 100%) !important;
+}
+
+.lifestyle-card .card-icon {
+  background: rgba(33, 150, 243, 0.4) !important;
+  border-color: rgba(33, 150, 243, 0.6) !important;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3) !important;
+}
+
+/* Goals Section */
+.goals-section {
+  margin-top: 24px;
+}
+
+.goal-card {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(15px);
+  transition: all 0.3s ease;
+}
+
+.goal-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.goal-content {
+  color: white;
+}
+
+.goal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.goal-icon {
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.goal-text {
+  color: white !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+}
+
+.goal-progress {
+  margin-bottom: 12px;
+}
+
+.goal-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.goal-actions .ant-btn {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+  border-radius: 6px !important;
+}
+
+.goal-actions .ant-btn:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Metrics Summary */
+.metrics-summary {
+  margin-top: 24px;
+}
+
+.metric-summary {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.metric-summary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.metric-icon-small {
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.metric-icon-small .anticon {
+  font-size: 16px;
+  color: white;
+}
+
+.metric-info {
+  flex: 1;
+  color: white;
+}
+
+.metric-name {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.metric-value {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: white !important;
+  display: block;
+  margin-bottom: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Divider Styling */
+.ant-divider {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Progress Bar Styling */
+.goal-progress .ant-progress-bg {
+  border-radius: 4px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.goal-progress .ant-progress-outer {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-radius: 4px !important;
+}
+
+.goal-progress .ant-progress-text {
+  color: white !important;
+  font-weight: 600 !important;
+}
+
+/* Tabbed Interface Styles */
+.healthify-content {
+  position: relative;
+  z-index: 2;
+}
+
+.tab-navigation {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 24px 0;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tab-button {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.tab-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.tab-button.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.tab-button .anticon {
+  font-size: 18px;
+}
+
+/* Goals Section Enhanced */
+.goals-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.add-goal-button {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+  backdrop-filter: blur(10px);
+  border-radius: 8px !important;
+  height: 40px;
+  padding: 0 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.add-goal-button:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.goal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.goal-info {
+  flex: 1;
+}
+
+.goal-status-tag {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.goal-actions {
+  margin-left: auto;
+}
+
+.goal-controls {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.goal-controls .ant-btn {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+  border-radius: 6px !important;
+  font-weight: 500;
+}
+
+.goal-controls .ant-btn:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.goal-controls .ant-btn:last-child {
+  background: rgba(82, 196, 26, 0.3) !important;
+  border-color: rgba(82, 196, 26, 0.5) !important;
+}
+
+.goal-controls .ant-btn:last-child:hover {
+  background: rgba(82, 196, 26, 0.5) !important;
+  border-color: rgba(82, 196, 26, 0.7) !important;
+}
+
+/* No Goals State */
+.no-goals {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  padding: 40px 20px;
+}
+
+.no-goals-content {
+  text-align: center;
+  color: white;
+}
+
+.no-goals-icon {
+  font-size: 64px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 24px;
+}
+
+.no-goals-content .ant-typography {
+  color: white !important;
+  margin-bottom: 16px !important;
+}
+
+.no-goals-text {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 16px !important;
+  margin-bottom: 24px !important;
+  display: block;
+}
+
+/* No Recommendations State */
+.no-recommendations {
+  text-align: center;
+  padding: 40px 20px;
+  color: white;
+}
+
+.no-data-text {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 16px !important;
+  margin-top: 16px !important;
+  display: block;
+}
+
+/* Goal Modal */
+.goal-modal .ant-modal-content {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.goal-modal .ant-modal-header {
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.goal-modal .ant-modal-title {
+  color: white !important;
+  font-weight: 600;
+}
+
+.goal-modal .ant-modal-body {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+.goal-modal .ant-form-item-label > label {
+  color: white !important;
+  font-weight: 500;
+}
+
+.goal-modal .ant-input,
+.goal-modal .ant-input:focus {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: #2c3e50 !important;
+}
+
+.goal-modal .ant-modal-footer {
+  background: rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.goal-modal .ant-btn-primary {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+}
+
+.goal-modal .ant-btn-primary:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.goal-modal .ant-btn-default {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+}
+
+.goal-modal .ant-btn-default:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .analyzed-metrics {
+    flex-direction: column;
+  }
+  
+  .metric-analysis {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .tab-navigation {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .tab-button {
+    min-width: auto;
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  
+  .goals-header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  
+  .goal-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .goal-actions {
+    margin-left: 0;
+    justify-content: center;
+  }
+  
+  .goal-controls {
+    justify-content: center;
+  }
+}
+  .healthify-assistant {
+    padding: 16px;
+    border-radius: 16px;
+  }
+  
+  .healthify-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .header-content {
+    justify-content: center;
+  }
+  
+  .analyze-button {
+    width: 100%;
+  }
+  
+  .header-title {
+    font-size: 24px !important;
+  }
+  
+  .recommendation-card {
+    margin-bottom: 16px;
+  }
+  
+  .metric-summary {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+  
+  .metric-icon-small {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .metric-icon-small .anticon {
+    font-size: 14px;
+  }
+}

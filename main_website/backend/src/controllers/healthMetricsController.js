@@ -11,15 +11,17 @@ const calculateHealthStatus = (bloodPressure, heartRate, bloodSugar, weight) => 
     weight: 'Stable'
   };
 
-  // Blood Pressure Status
+  // Blood Pressure Status (AHA 2024 Guidelines)
   const systolic = bloodPressure.systolic;
   const diastolic = bloodPressure.diastolic;
-  if (systolic < 90 || diastolic < 60) {
-    status.bloodPressure = 'Low';
-  } else if (systolic >= 140 || diastolic >= 90) {
-    status.bloodPressure = 'High';
+  if (systolic >= 140 || diastolic >= 90) {
+    status.bloodPressure = 'High'; // Hypertension Stage 2
+  } else if (systolic >= 130 || diastolic >= 80) {
+    status.bloodPressure = 'Pre-High'; // Hypertension Stage 1
   } else if (systolic >= 120 || diastolic >= 80) {
-    status.bloodPressure = 'Pre-High';
+    status.bloodPressure = 'Elevated'; // Elevated BP
+  } else if (systolic < 90 || diastolic < 60) {
+    status.bloodPressure = 'Low'; // Hypotension
   }
 
   // Heart Rate Status

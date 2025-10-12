@@ -1445,6 +1445,369 @@
     width: 100% !important;
     justify-content: center !important;
   }
+}
+
+/* Health Metrics Container - Elegant Design */
+.health-metrics-container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+  min-height: 400px;
+}
+
+.health-metrics-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+  border-radius: 20px;
+  pointer-events: none;
+}
+
+.health-metrics-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 2;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: center;
+}
+
+.header-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.header-icon .anticon {
+  font-size: 24px;
+  color: white;
+}
+
+.header-text {
+  color: white;
+  text-align: center;
+}
+
+.header-title {
+  color: white !important;
+  margin: 0 !important;
+  font-size: 24px !important;
+  font-weight: 600 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.header-subtitle {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 14px;
+  margin: 0;
+  text-align: center;
+}
+
+.refresh-button {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+  backdrop-filter: blur(10px);
+  border-radius: 8px !important;
+  height: 40px;
+  padding: 0 16px;
+  transition: all 0.3s ease;
+}
+
+.refresh-button:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.healthify-button {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+  backdrop-filter: blur(10px);
+  border-radius: 8px !important;
+  height: 40px;
+  padding: 0 16px;
+  transition: all 0.3s ease;
+}
+
+.healthify-button:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.metrics-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: white;
+}
+
+.loading-text {
+  margin-top: 16px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 16px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(450px, 1fr));
+  gap: 32px;
+  position: relative;
+  z-index: 2;
+}
+
+.metric-card {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 36px;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInUp 0.6s ease-out forwards;
+  opacity: 0;
+  transform: translateY(30px);
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.metric-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.metric-card-inner {
+  position: relative;
+  z-index: 2;
+}
+
+.metric-icon {
+  width: 64px;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.metric-icon .anticon {
+  font-size: 32px;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.metric-content {
+  margin-bottom: 16px;
+}
+
+.metric-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.metric-value {
+  font-size: 42px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 16px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.metric-status {
+  margin-bottom: 12px;
+}
+
+.status-tag {
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 6px 12px !important;
+  border: none !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-progress {
+  position: relative;
+}
+
+.progress-bar .ant-progress-bg {
+  border-radius: 3px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.progress-bar .ant-progress-outer {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-radius: 3px !important;
+}
+
+.metric-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, var(--metric-color, #667eea) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.metric-card:hover .metric-icon {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.metric-card:hover .metric-icon .anticon {
+  transform: scale(1.1);
+}
+
+/* Specific icon styling */
+.blood-pressure-icon {
+  background: rgba(255, 107, 107, 0.3) !important;
+  border-color: rgba(255, 107, 107, 0.5) !important;
+}
+
+.heart-rate-icon {
+  background: rgba(255, 193, 7, 0.3) !important;
+  border-color: rgba(255, 193, 7, 0.5) !important;
+}
+
+.blood-sugar-icon {
+  background: rgba(255, 87, 51, 0.3) !important;
+  border-color: rgba(255, 87, 51, 0.5) !important;
+}
+
+.weight-icon {
+  background: rgba(76, 175, 80, 0.3) !important;
+  border-color: rgba(76, 175, 80, 0.5) !important;
+}
+
+.updating-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(102, 126, 234, 0.9);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  z-index: 10;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.updating-text {
+  color: white;
+  margin-top: 16px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Animations */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Mobile responsive for health metrics */
+@media (max-width: 768px) {
+  .health-metrics-container {
+    padding: 16px;
+    border-radius: 16px;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .metric-card {
+    padding: 32px;
+    min-height: 240px;
+  }
+  
+  .metric-value {
+    font-size: 36px;
+  }
+  
+  .header-title {
+    font-size: 20px !important;
+  }
+}
 
   /* Mobile responsive header */
   .medications-header {
@@ -1481,6 +1844,60 @@
 
   .live-text {
     font-size: 10px;
+  }
+
+  /* Health Metrics Responsive Design */
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .metric-card {
+    padding: 32px;
+    min-height: 240px;
+  }
+  
+  .metric-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+  
+  .metric-value {
+    font-size: 20px;
+  }
+  
+  .metric-label {
+    font-size: 12px;
+  }
+  
+  .refresh-button,
+  .healthify-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+/* Medium screens */
+@media (max-width: 1400px) and (min-width: 1000px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+}
+
+/* Tablet responsive design */
+@media (max-width: 1000px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+/* Large desktop design */
+@media (min-width: 1400px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px;
   }
 }
 

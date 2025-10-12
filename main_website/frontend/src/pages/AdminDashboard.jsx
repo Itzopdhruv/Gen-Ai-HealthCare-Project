@@ -28,6 +28,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { patientAPI } from '../services/api';
 import AdminAppointmentManagement from '../components/AdminAppointmentManagement';
+import SecurityDashboard from '../components/SecurityDashboard';
 import {
   UserOutlined,
   FileTextOutlined,
@@ -854,62 +855,13 @@ const AdminDashboard = () => {
               </Row>
             )}
 
-            {activeTab === 'security' && (
-              <Card title="Security Dashboard" className="security-card">
-                <Row gutter={[24, 24]}>
-                  <Col xs={24} lg={12}>
-                    <Card title="Access Logs" type="inner">
-                      <Timeline>
-                        <Timeline.Item color="green">
-                          <Text strong>Admin login - 2025-01-15 08:30</Text>
-                          <br />
-                          <Text type="secondary">IP: 192.168.1.100</Text>
-                        </Timeline.Item>
-                        <Timeline.Item color="blue">
-                          <Text strong>Doctor access - 2025-01-15 07:45</Text>
-                          <br />
-                          <Text type="secondary">IP: 192.168.1.101</Text>
-                        </Timeline.Item>
-                        <Timeline.Item color="orange">
-                          <Text strong>Failed login attempt - 2025-01-15 06:20</Text>
-                          <br />
-                          <Text type="secondary">IP: 192.168.1.102</Text>
-                        </Timeline.Item>
-                      </Timeline>
-                    </Card>
-                  </Col>
-                  <Col xs={24} lg={12}>
-                    <Card title="Security Settings" type="inner">
-                      <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                        <div className="security-item">
-                          <Text strong>Two-Factor Authentication</Text>
-                          <Switch defaultChecked />
-                        </div>
-                        <div className="security-item">
-                          <Text strong>Session Timeout</Text>
-                          <Select defaultValue="30" style={{ width: 100 }}>
-                            <Option value="15">15 min</Option>
-                            <Option value="30">30 min</Option>
-                            <Option value="60">1 hour</Option>
-                          </Select>
-                        </div>
-                        <div className="security-item">
-                          <Text strong>Password Policy</Text>
-                          <Button type="link" size="small">Configure</Button>
-                        </div>
-                        <div className="security-item">
-                          <Text strong>API Security</Text>
-                          <Button type="link" size="small">Review</Button>
-                        </div>
-                      </Space>
-                    </Card>
-                  </Col>
-                </Row>
-              </Card>
-            )}
 
             {activeTab === 'appointments' && (
               <AdminAppointmentManagement />
+            )}
+
+            {activeTab === 'security' && (
+              <SecurityDashboard />
             )}
           </div>
         </Content>

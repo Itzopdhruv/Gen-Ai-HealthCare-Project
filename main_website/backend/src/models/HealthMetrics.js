@@ -76,7 +76,7 @@ const healthMetricsSchema = new mongoose.Schema({
   status: {
     bloodPressure: {
       type: String,
-      enum: ['Normal', 'High', 'Low', 'Pre-High'],
+      enum: ['Normal', 'High', 'Low', 'Pre-High', 'Elevated'],
       default: 'Normal'
     },
     heartRate: {
@@ -107,15 +107,17 @@ healthMetricsSchema.index({ abhaId: 1, createdAt: -1 });
 healthMetricsSchema.methods.calculateStatus = function() {
   const { bloodPressure, heartRate, bloodSugar, weight } = this;
   
-  // Blood Pressure Status
+  // Blood Pressure Status (AHA 2024 Guidelines)
   if (bloodPressure.systolic >= 140 || bloodPressure.diastolic >= 90) {
-    this.status.bloodPressure = 'High';
+    this.status.bloodPressure = 'High'; // Hypertension Stage 2
+  } else if (bloodPressure.systolic >= 130 || bloodPressure.diastolic >= 80) {
+    this.status.bloodPressure = 'Pre-High'; // Hypertension Stage 1
   } else if (bloodPressure.systolic >= 120 || bloodPressure.diastolic >= 80) {
-    this.status.bloodPressure = 'Pre-High';
+    this.status.bloodPressure = 'Elevated'; // Elevated BP
   } else if (bloodPressure.systolic < 90 || bloodPressure.diastolic < 60) {
-    this.status.bloodPressure = 'Low';
+    this.status.bloodPressure = 'Low'; // Hypotension
   } else {
-    this.status.bloodPressure = 'Normal';
+    this.status.bloodPressure = 'Normal'; // <120/80
   }
 
   // Heart Rate Status

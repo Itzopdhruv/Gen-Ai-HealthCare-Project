@@ -63,6 +63,25 @@ const userSchema = new mongoose.Schema({
   lastLogin: {
     type: Date
   },
+  // Two-Factor Authentication fields
+  twoFactorAuth: {
+    enabled: {
+      type: Boolean,
+      default: false
+    },
+    secret: {
+      type: String,
+      required: false
+    },
+    backupCodes: [{
+      code: String,
+      used: { type: Boolean, default: false },
+      usedAt: Date
+    }],
+    enabledAt: Date,
+    disabledAt: Date,
+    lastUsed: Date
+  },
   profile: {
     dateOfBirth: Date,
     age: Number,

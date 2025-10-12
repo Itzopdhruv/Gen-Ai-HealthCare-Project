@@ -3,6 +3,7 @@ import { Form, Input, Button, Card, Typography, message, Tabs, Divider, Select, 
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined, CreditCardOutlined, MedicineBoxOutlined, CalendarOutlined, SearchOutlined, PlusOutlined, CheckCircleOutlined, LoadingOutlined, RocketOutlined, StarOutlined } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import TwoFactorLoginVerification from './TwoFactorLoginVerification';
 import './Login.css';
 
 const { Title, Text } = Typography;
@@ -25,11 +26,16 @@ const Login = () => {
   const [isFormValid, setIsFormValid] = useState(false);
   const [inputFocus, setInputFocus] = useState('');
   
-  const { login, register, patientLoginRequestOtp, patientLoginVerifyOtp } = useAuth();
+  const { login, register, patientLoginRequestOtp, patientLoginVerifyOtp, verify2FA } = useAuth();
   const [patientOtpRequested, setPatientOtpRequested] = useState(false);
   const [patientName, setPatientName] = useState('');
   const [patientPhone, setPatientPhone] = useState('');
   const [patientOtp, setPatientOtp] = useState('');
+  
+  // 2FA states
+  const [show2FA, setShow2FA] = useState(false);
+  const [pendingUser, setPendingUser] = useState(null);
+  
   const navigate = useNavigate();
 
   const onLogin = async (values) => {
@@ -62,7 +68,19 @@ const Login = () => {
     clearInterval(progressInterval);
     
     if (result.success) {
-      // Show success animation
+      // Check if 2FA is required
+      if (result.requires2FA) {
+        console.log('🔐 2FA required, showing verification modal');
+        setPendingUser(result.user);
+        setShow2FA(true);
+        setIsTransitioning(false);
+        setLoginProgress(0);
+        setShowImage(false);
+        setParticleCount(0);
+        return; // Don't navigate yet
+      }
+      
+      // Show success animation for non-2FA login
       setShowSuccessAnimation(true);
       setShowImage(true); // Trigger image slide-in
       
@@ -93,6 +111,31 @@ const Login = () => {
     }
     
     setLoading(false);
+  };
+
+  const handle2FASuccess = () => {
+    setShow2FA(false);
+    setPendingUser(null);
+    
+    // Show success animation
+    setShowSuccessAnimation(true);
+    setShowImage(true);
+    setParticleCount(100);
+    
+    setTimeout(() => {
+      message.success('Login successful!');
+      setShowSuccessAnimation(false);
+      setIsTransitioning(false);
+      
+      // Navigate based on role
+      if (activeTab === 'admin') {
+        navigate('/admin-dashboard');
+      } else if (activeTab === 'doctor') {
+        navigate('/doctor-dashboard');
+      } else {
+        navigate('/patient-dashboard');
+      }
+    }, 2000);
   };
 
   const onRegister = async (values) => {
@@ -891,6 +934,18 @@ const Login = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* 2FA Verification Modal */}
+      <TwoFactorLoginVerification
+        visible={show2FA}
+        onClose={() => {
+          setShow2FA(false);
+          setPendingUser(null);
+        }}
+        onSuccess={handle2FASuccess}
+        userId={pendingUser?.id}
+        userEmail={pendingUser?.email}
+      />
     </div>
   );
 };

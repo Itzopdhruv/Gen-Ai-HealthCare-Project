@@ -10,7 +10,7 @@ import tempfile
 from typing import Optional
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel
 import uvicorn
 from dotenv import load_dotenv
@@ -240,14 +240,20 @@ async def analyze_combined(
 
 # Text-to-speech endpoint
 @app.post("/text-to-speech")
-async def text_to_speech(text: str = Form(...)):
+async def text_to_speech(text: str = Form(...), lang: str = Form("en"), speed: float = Form(1.67)):
     """
-    Convert text to speech
+    Convert text to speech with language and speed support
+    Supports: en (English), hi (Hindi)
+    Speed: 1.0 = normal, 1.67 = 67% faster (default), 2.0 = double speed
     """
     try:
+        # Generate unique filename for each language to avoid conflicts
+        output_filename = f"tts_output_{lang}.mp3"
         audio_file_path = text_to_speech_with_gtts(
             input_text=text,
-            output_filepath="tts_output.mp3"
+            output_filepath=output_filename,
+            lang=lang,
+            speed=speed
         )
         
         if os.path.exists(audio_file_path):
@@ -261,6 +267,32 @@ async def text_to_speech(text: str = Form(...)):
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error converting text to speech: {str(e)}")
+
+@app.get("/audio/{filename}")
+async def get_audio(filename: str):
+    """
+    Serve audio files
+    """
+    try:
+        # Check if file exists in current directory
+        if os.path.exists(filename):
+            return FileResponse(
+                filename,
+                media_type="audio/mpeg",
+                headers={"Content-Disposition": f"inline; filename={filename}"}
+            )
+        
+        # Check if file exists with full path
+        if os.path.exists(os.path.join(os.getcwd(), filename)):
+            return FileResponse(
+                os.path.join(os.getcwd(), filename),
+                media_type="audio/mpeg",
+                headers={"Content-Disposition": f"inline; filename={filename}"}
+            )
+        
+        raise HTTPException(status_code=404, detail="Audio file not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error serving audio: {str(e)}")
 
 # Text-only analysis endpoint for chat
 @app.post("/analyze-text")
@@ -390,15 +422,27 @@ async def analyze_endpoint(request_data: dict):
         text_input = request_data.get('text_input')
         audio_file = request_data.get('audio_file')
         image_file = request_data.get('image_file')
+        conversation_history = request_data.get('conversation_history', [])
         
         groq_api_key = os.getenv("GROQ_API_KEY")
         if not groq_api_key:
             raise HTTPException(status_code=500, detail="GROQ_API_KEY not configured")
         
+        # Create context from conversation history
+        context = ""
+        if conversation_history:
+            context = "Previous conversation context:\n"
+            for msg in conversation_history[-6:]:  # Last 6 messages for context
+                if msg.get('type') == 'user':
+                    context += f"Patient: {msg.get('content', '')}\n"
+                elif msg.get('type') == 'doctor':
+                    context += f"Doctor: {msg.get('content', '')[:200]}...\n"  # Truncate long responses
+            context += "\nCurrent conversation:\n"
+        
         # Handle text-only input
         if text_input and not audio_file and not image_file:
-            # Create a medical-focused prompt
-            medical_prompt = f"""You are a professional AI medical assistant. Please provide helpful, accurate medical information about the following query: "{text_input}"
+            # Create a medical-focused prompt with conversation context
+            medical_prompt = f"""{context}You are a professional AI medical assistant. Please provide helpful, accurate medical information about the following query: "{text_input}"
 
             Guidelines:
             - Provide clear, concise medical information
@@ -408,6 +452,8 @@ async def analyze_endpoint(request_data: dict):
             - Focus on general health information and common conditions
             - Do not provide specific medical diagnoses or prescriptions
             - Be empathetic and supportive in your responses
+            - If the patient is asking a follow-up question, reference the previous conversation context
+            - Use pronouns like "it", "this", "that" appropriately based on the conversation history
             
             Query: {text_input}
             
@@ -445,20 +491,58 @@ async def analyze_endpoint(request_data: dict):
                 }
             }
         
-        # Handle image analysis
-        elif image_file and not audio_file:
-            # For now, return a message that image analysis is not implemented
-            return {
-                "success": True,
-                "data": {
-                    "analysis": "Image analysis feature is currently being developed. Please try asking a text-based medical question instead.",
-                    "input_type": "image",
-                    "model_used": "not_implemented"
+        # Handle image-only analysis
+        elif image_file and not audio_file and not text_input:
+            try:
+                # Decode base64 image
+                import base64
+                image_data = base64.b64decode(image_file)
+                
+                # Save to temporary file
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp_file:
+                    tmp_file.write(image_data)
+                    tmp_file_path = tmp_file.name
+                
+                try:
+                    # Encode image for analysis
+                    encoded_image = encode_image(tmp_file_path)
+                    
+                    # Create medical-focused query for image analysis
+                    medical_query = "Please analyze this medical image. Look for any visible symptoms, conditions, or abnormalities. Provide a professional medical assessment while noting that this is for informational purposes only and should not replace professional medical diagnosis."
+                    
+                    # Analyze image with medical query
+                    analysis = analyze_image_with_query(
+                        query=medical_query,
+                        model="meta-llama/llama-4-scout-17b-16e-instruct",
+                        encoded_image=encoded_image
+                    )
+                    
+                    return {
+                        "success": True,
+                        "data": {
+                            "analysis": analysis,
+                            "input_type": "image",
+                            "query": medical_query,
+                            "model_used": "meta-llama/llama-4-scout-17b-16e-instruct"
+                        }
+                    }
+                    
+                finally:
+                    # Clean up temporary file
+                    os.unlink(tmp_file_path)
+                    
+            except Exception as e:
+                return {
+                    "success": False,
+                    "data": {
+                        "analysis": f"Error analyzing image: {str(e)}",
+                        "input_type": "image",
+                        "model_used": "error"
+                    }
                 }
-            }
         
-        # Handle audio analysis
-        elif audio_file and not image_file:
+        # Handle audio-only analysis
+        elif audio_file and not image_file and not text_input:
             # For now, return a message that audio analysis is not implemented
             return {
                 "success": True,
@@ -469,16 +553,69 @@ async def analyze_endpoint(request_data: dict):
                 }
             }
         
-        # Handle combined inputs
+        # Handle combined inputs (image + text)
         else:
-            return {
-                "success": True,
-                "data": {
-                    "analysis": "Combined input analysis feature is currently being developed. Please try asking a text-based medical question instead.",
-                    "input_type": "combined",
-                    "model_used": "not_implemented"
+            try:
+                # Decode base64 image
+                import base64
+                image_data = base64.b64decode(image_file)
+                
+                # Save to temporary file
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp_file:
+                    tmp_file.write(image_data)
+                    tmp_file_path = tmp_file.name
+                
+                try:
+                    # Encode image for analysis
+                    encoded_image = encode_image(tmp_file_path)
+                    
+                    # Create combined query that addresses the patient's specific question with context
+                    combined_query = f"""{context}Please analyze this medical image and answer the patient's specific question: "{text_input}"
+
+Instructions:
+1. First, analyze what you see in the image
+2. Then, specifically address the patient's question about the image
+3. Provide helpful, accurate medical information related to their question
+4. Include appropriate disclaimers about consulting healthcare professionals
+5. Be empathetic and supportive in your response
+6. If this is a follow-up question, reference the previous conversation context
+7. Use pronouns like "it", "this", "that" appropriately based on the conversation history
+
+Patient's Question: {text_input}
+
+Please provide a comprehensive response that addresses both the image analysis and the patient's specific question."""
+                    
+                    # Analyze image with patient's specific question
+                    analysis = analyze_image_with_query(
+                        query=combined_query,
+                        model="meta-llama/llama-4-scout-17b-16e-instruct",
+                        encoded_image=encoded_image
+                    )
+                    
+                    return {
+                        "success": True,
+                        "data": {
+                            "analysis": analysis,
+                            "input_type": "combined",
+                            "query": combined_query,
+                            "patient_question": text_input,
+                            "model_used": "meta-llama/llama-4-scout-17b-16e-instruct"
+                        }
+                    }
+                    
+                finally:
+                    # Clean up temporary file
+                    os.unlink(tmp_file_path)
+                    
+            except Exception as e:
+                return {
+                    "success": False,
+                    "data": {
+                        "analysis": f"Error analyzing combined input: {str(e)}",
+                        "input_type": "combined",
+                        "model_used": "error"
+                    }
                 }
-            }
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in analysis: {str(e)}")

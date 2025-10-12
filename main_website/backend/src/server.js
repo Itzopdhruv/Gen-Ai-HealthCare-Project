@@ -32,6 +32,7 @@ import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import http from 'http';
+import { initializeRateLimiter, getRateLimiter } from './services/rateLimiterService.js';
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -48,6 +49,11 @@ import adminAppointmentRoutes from './routes/adminAppointmentRoutes.js';
 import meetingRoutes from './routes/meetingRoutes.js';
 import recordingRoutes from './routes/recordingRoutes.js';
 import healthMetricsRoutes from './routes/healthMetrics.js';
+import securityRoutes from './routes/securityRoutes.js';
+import twoFactorAuthRoutes from './routes/twoFactorAuth.js';
+import accessLogsRoutes from './routes/accessLogs.js';
+import aiDoctorChatRoutes from './routes/aiDoctorChat.js';
+import { logAccess, logLoginAttempt, updateLoginStatus, logLogout } from './middleware/accessLogging.js';
 import { summarizeReportWithGemini, testGeminiPrompt } from './services/geminiService.js';
 import { addMigrationEndpoint } from './utils/migrateJitsiIds.js';
 import { addFixEndpoint } from './utils/fixAppointmentMeetingIds.js';
@@ -61,16 +67,12 @@ const app = express();
 app.use(helmet());
 app.use(compression());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: {
-    success: false,
-    message: 'Too many requests from this IP, please try again later.'
-  }
-});
+// Rate limiting - Dynamic rate limiter
+const limiter = initializeRateLimiter();
 app.use(limiter);
+
+// Apply access logging middleware to all routes
+app.use(logAccess);
 
 // CORS configuration
 app.use(cors({
@@ -121,11 +123,15 @@ app.use('/api/prescription', prescriptionRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/ai-assistant', aiAssistantRoutes);
 app.use('/api/ai-doctor', aiDoctorRoutes);
+app.use('/api/ai-doctor-chat', aiDoctorChatRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/admin/appointments', adminAppointmentRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/recordings', recordingRoutes);
 app.use('/api/health-metrics', healthMetricsRoutes);
+app.use('/api/admin/security', securityRoutes);
+app.use('/api/auth/2fa', twoFactorAuthRoutes);
+app.use('/api/admin/security', accessLogsRoutes);
 
 // CORS configuration for file uploads
 app.use('/api/recordings', cors({

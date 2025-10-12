@@ -12,6 +12,14 @@ const api = axios.create({
 // Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
+    // Don't add auth token for 2FA verification endpoints or login endpoints
+    if (config.url?.includes('/auth/2fa/verify-login') || 
+        config.url?.includes('/auth/login-complete') ||
+        config.url?.includes('/auth/login') ||
+        config.url?.includes('/auth/register')) {
+      return config;
+    }
+    
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

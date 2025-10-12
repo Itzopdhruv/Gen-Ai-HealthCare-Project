@@ -50,9 +50,23 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('🔐 Attempting login with credentials:', credentials);
       const response = await api.post('/auth/login', credentials);
-      const { token: newToken, user: userData } = response.data;
+      const { token: newToken, user: userData, requires2FA, tempToken } = response.data;
       
       console.log('✅ Login successful, setting user data:', userData);
+      
+      // If 2FA is required, don't complete login yet
+      if (requires2FA) {
+        console.log('🔐 2FA required for user:', userData.email);
+        console.log('🔐 Storing tempToken:', tempToken ? 'EXISTS' : 'MISSING');
+        localStorage.setItem('tempToken', tempToken); // Store the actual tempToken
+        return { 
+          success: true, 
+          requires2FA: true, 
+          user: userData
+        };
+      }
+      
+      // Complete login if no 2FA required
       localStorage.setItem('token', newToken);
       localStorage.setItem('authType', 'user');
       localStorage.setItem('user', JSON.stringify(userData));
@@ -66,6 +80,76 @@ export const AuthProvider = ({ children }) => {
       return { 
         success: false, 
         error: error.response?.data?.message || 'Login failed' 
+      };
+    }
+  };
+
+  const verify2FA = async (userId, verificationCode, backupCode) => {
+    try {
+      console.log('🔐 Starting 2FA verification for user:', userId);
+      console.log('🔐 Verification code:', verificationCode);
+      console.log('🔐 Backup code:', backupCode);
+      
+      // First verify the 2FA code
+      const verifyResponse = await api.post('/auth/2fa/verify-login', {
+        userId: userId,
+        verificationCode: verificationCode,
+        backupCode: backupCode
+      });
+      
+      console.log('✅ 2FA verification response:', verifyResponse.data);
+      
+      if (verifyResponse.data.success) {
+        // Then complete the login
+        const tempToken = localStorage.getItem('tempToken');
+        console.log('🔐 Temp token from localStorage:', tempToken ? 'EXISTS' : 'MISSING');
+        
+        if (!tempToken) {
+          console.error('❌ No temp token found in localStorage');
+          return { 
+            success: false, 
+            error: 'No temporary token found. Please try logging in again.' 
+          };
+        }
+        
+        const completeResponse = await api.post('/auth/login-complete', {
+          userId: userId,
+          tempToken: tempToken
+        });
+        
+        console.log('✅ Login complete response:', completeResponse.data);
+        
+        if (completeResponse.data.success) {
+          const { token: finalToken, user: userData } = completeResponse.data;
+          
+          localStorage.setItem('token', finalToken);
+          localStorage.setItem('authType', 'user');
+          localStorage.setItem('user', JSON.stringify(userData));
+          localStorage.removeItem('tempToken'); // Clean up temp token
+          setToken(finalToken);
+          setUser(userData);
+          
+          console.log('✅ 2FA verification and login completed successfully');
+          return { success: true };
+        } else {
+          console.error('❌ Login completion failed:', completeResponse.data);
+          return { 
+            success: false, 
+            error: 'Login completion failed' 
+          };
+        }
+      } else {
+        console.error('❌ 2FA verification failed:', verifyResponse.data);
+        return { 
+          success: false, 
+          error: verifyResponse.data.message || '2FA verification failed' 
+        };
+      }
+    } catch (error) {
+      console.error('❌ 2FA verification error:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || '2FA verification failed' 
       };
     }
   };
@@ -157,10 +241,13 @@ export const AuthProvider = ({ children }) => {
     token,
     loading,
     login,
+    verify2FA,
     patientLoginRequestOtp,
     patientLoginVerifyOtp,
     register,
     logout,
+    setToken,
+    setUser,
     isAuthenticated: !!token
   };
 

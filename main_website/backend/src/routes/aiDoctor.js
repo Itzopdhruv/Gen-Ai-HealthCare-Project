@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/health', checkAIDoctorHealth);
 
 // Analyze medical input (audio, image, text)
-router.post('/analyze', authenticateToken, analyzeMedicalInput);
+router.post('/analyze', analyzeMedicalInput);
 
 // Get audio response file
 router.get('/audio/:filename', authenticateToken, getAudioResponse);

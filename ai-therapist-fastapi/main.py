@@ -6,7 +6,7 @@ import numpy as np
 import base64
 import json
 import os
-import google.generativeai as genai
+from groq import Groq
 from dotenv import load_dotenv
 import re
 import uuid
@@ -36,6 +36,7 @@ face_detector = None
 current_emotions = {}
 emotion_history = {}
 active_sessions = {}
+groq_client = None  # ✅ Add Groq client
 
 # Pydantic models
 class EmotionDetectionRequest(BaseModel):
@@ -50,29 +51,22 @@ class EmotionDetectionResponse(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     session_id: str
+    mood: str = "neutral"  # ✅ Add mood field
 
 class ChatResponse(BaseModel):
     response: str
     session_id: str
 
-# Initialize Google Generative AI
+# Initialize Groq AI Client
 try:
-    # Set API key directly from config.env file
-    api_key = "AIzaSyCrCd7CjUyz6-dZ-TM06KoS-AWS0LF0iws"
-    print(f"[DEBUG] Configuring Gemini with API key: {api_key[:10]}...")
-    genai.configure(api_key=api_key)
-    print("[DEBUG] API key configured successfully")
-    
-    print("[DEBUG] Creating GenerativeModel with gemini-2.5-flash")
-    model = genai.GenerativeModel('gemini-2.5-flash')
-    print("[SUCCESS] Google Generative AI initialized successfully")
-    print(f"[DEBUG] Model object: {model}")
-    print(f"[DEBUG] Model name: {model.model_name}")
+    groq_api_key = os.getenv('GROQ_API_KEY')
+    if not groq_api_key:
+        raise ValueError("GROQ_API_KEY not found in environment variables")
+    groq_client = Groq(api_key=groq_api_key)
+    print("✅ Groq AI initialized successfully (llama-3.1-8b-instant)")
 except Exception as e:
-    print(f"[ERROR] Error initializing Google Generative AI: {e}")
-    print(f"[ERROR] Error type: {type(e)}")
-    print(f"[ERROR] Error details: {str(e)}")
-    model = None
+    print(f"❌ Error initializing Groq AI: {e}")
+    groq_client = None
 
 # Initialize OpenCV face detector
 try:
@@ -264,65 +258,96 @@ def detect_emotion_from_image(image_data):
         return "Neutral", 0.5
 
 def generate_therapist_response(message, emotion, session_id):
-    """Generate AI therapist response based on emotion"""
+    """Generate AI therapist response using Groq"""
+    print("=" * 80)
+    print("GENERATE_THERAPIST_RESPONSE CALLED")
+    print("=" * 80)
+    print(f"Message: {message}")
+    print(f"Emotion: {emotion}")
+    print(f"Session ID: {session_id}")
+    print("=" * 80)
+    
     try:
         print(f"[DEBUG] generate_therapist_response called with message: {message[:50]}...")
-        print(f"[DEBUG] Model object: {model}")
-        print(f"[DEBUG] Model is None: {model is None}")
+        print(f"[DEBUG] Groq client object: {groq_client}")
+        print(f"[DEBUG] Groq client is None: {groq_client is None}")
         
-        if not model:
-            print("❌ Gemini model is not initialized")
+        if not groq_client:
+            print("*** GROQ CLIENT IS NONE - RETURNING UNAVAILABLE MESSAGE ***")
             return "I'm sorry, the AI service is currently unavailable. Please try again later."
+        
+        print("✅ Groq client is available")
         
         # Get emotion history for this session
         session_emotions = emotion_history.get(session_id, [])
         recent_emotions = session_emotions[-5:] if len(session_emotions) > 5 else session_emotions
         
+        print(f"📊 Session emotions: {len(session_emotions)} total, {len(recent_emotions)} recent")
+        
         # Create context-aware prompt based on emotion
-        if emotion in ['Happy', 'Surprise']:
-            mood_context = f"The user is in a happy and joyful mood. Acknowledge this and complement them accordingly."
-            tone = "warm, empathetic, and therapeutic and joyful tone"
-        elif emotion in ['Angry', 'Disgust']:
-            mood_context = f"The user is in an angry mood. Keep a calming tone and try to calm down the user by hearing and replying appropriately."
-            tone = "warm, empathetic, and therapeutic tone"
-        elif emotion in ['Fear', 'Sad']:
-            mood_context = f"The user seems to be in a sad mood. Acknowledge this and console them accordingly."
-            tone = "warm, empathetic, and therapeutic tone"
-        else:
-            mood_context = f"The user is in a neutral mood. Engage like a friendly counsellor."
-            tone = "warm, empathetic tone"
+        emotion_guidelines = {
+            'happy': "The patient appears to be in a positive mood. Acknowledge their happiness, encourage them to share what's going well, and help them build on this positive energy.",
+            'sad': "The patient seems to be feeling down or sad. Be extra gentle and empathetic, validate their feelings, and offer comfort and support.",
+            'angry': "The patient appears frustrated or angry. Stay calm and non-judgmental, help them process their feelings, and guide them toward constructive solutions.",
+            'neutral': "The patient seems calm and neutral. Be warm and inviting, ask open-ended questions to understand their current state, and provide general support.",
+            'surprised': "The patient seems surprised or alert. Be reassuring, help them process what might have surprised them, and provide stability.",
+            'fearful': "The patient appears anxious or fearful. Be very gentle and reassuring, validate their concerns, and help them feel safe.",
+            'disgusted': "The patient seems to be experiencing disgust or strong negative feelings. Be understanding and help them process these feelings constructively."
+        }
         
-        prompt = f"""
-        You are a Personal Therapist named Fido. Your goal is to uplift user mental health and engage in a deep human-like conversation. 
-        Your goal as therapist should be to engage in therapeutic conversations, asking follow up questions and talk like a caring friend like a counsellor. 
-        You should be hearing the user more. 
+        emotion_guidance = emotion_guidelines.get(emotion.lower(), emotion_guidelines['neutral'])
+        print(f"🎯 Emotion guidance found: {emotion.lower() in emotion_guidelines}")
+        print(f"📋 Emotion guidance: {emotion_guidance[:50]}...")
         
-        IMPORTANT: Do not use any emojis, special characters, or Unicode symbols in your response. Use only plain text.
+        system_prompt = f"""You are a compassionate AI therapist named FIDO. 
+        EMOTION-SPECIFIC GUIDANCE: {emotion_guidance}
+        IMPORTANT: Your response MUST reflect the patient's current emotion ({emotion}). Adapt your tone, approach, and suggestions accordingly.
+        Guidelines:
+        1. Acknowledge their current emotional state specifically
+        2. Provide emotion-appropriate support and advice
+        3. Ask thoughtful follow-up questions relevant to their mood
+        4. Maintain a professional yet warm tone
+        5. Keep responses concise but meaningful (2-3 sentences)
+        Current patient emotion: {emotion}"""
         
-        Current emotion: {emotion}
-        Recent emotions: {', '.join(recent_emotions) if recent_emotions else 'None'}
+        user_prompt = f"""Patient message: "{message}"
+        Patient's current emotional state: {emotion}
+        Recent emotions: {', '.join([str(e.get('emotion', e)) if isinstance(e, dict) else str(e) for e in recent_emotions]) if recent_emotions else 'None'}
+        Respond as FIDO, acknowledging their {emotion} mood and providing appropriate support."""
         
-        {mood_context}
+        print(f"🎭 Generating response for emotion: '{emotion}' | Message: '{message[:30]}...'")
+        print(f"📏 System prompt length: {len(system_prompt)}")
+        print(f"📏 User prompt length: {len(user_prompt)}")
         
-        The user's message: "{message}"
+        print("🚀 Making Groq API call...")
+        response = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.8,
+            max_tokens=200,
+            top_p=0.9
+        )
         
-        Respond to their queries with a {tone}, considering their mood, and aim to improve their emotional well-being. 
-        Keep it engaging by adding follow up questions, make it like a human conversation. 
-        Limit your answer to 60-80 words.
-        """
-        
-        print(f"🤖 Calling Gemini API with prompt length: {len(prompt)}")
-        response = model.generate_content(prompt)
-        print(f"🤖 Gemini response received: {response.text[:100]}...")
-        # Clean any emojis or special characters that might come through
-        cleaned_response = clean_text(response.text)
-        print(f"🤖 Cleaned response: {cleaned_response[:100]}...")
-        return cleaned_response
+        print("✅ Groq API call successful!")
+        ai_response = response.choices[0].message.content
+        print(f"🤖 AI Response for {emotion}: {ai_response[:50]}...")
+        print(f"✅ SUCCESS: Generated response successfully")
+        print(f"{'='*60}\n")
+        return ai_response
         
     except Exception as e:
-        print(f"❌ ERROR in generate_therapist_response: {e}")
-        print(f"❌ Error type: {type(e)}")
-        print(f"❌ Error details: {str(e)}")
+        print("=" * 80)
+        print("*** EXCEPTION CAUGHT IN generate_therapist_response ***")
+        print("=" * 80)
+        print(f"ERROR: {e}")
+        print(f"ERROR TYPE: {type(e)}")
+        print("*** THIS IS WHY YOU GET FALLBACK MESSAGE ***")
+        import traceback
+        traceback.print_exc()
+        print("=" * 80)
         return "I'm here to listen and help. Could you tell me more about what you're experiencing?"
 
 @app.get("/")
@@ -335,7 +360,7 @@ async def health_check():
         "status": "healthy",
         "services": {
             "opencv": face_detector is not None,
-            "google_ai": model is not None,
+            "groq_ai": groq_client is not None,
             "emotion_model": emotion_model is not None
         }
     }
@@ -348,7 +373,10 @@ async def detect_emotion(request: EmotionDetectionRequest):
         # Store emotion in history
         if request.session_id not in emotion_history:
             emotion_history[request.session_id] = []
-        emotion_history[request.session_id].append(emotion)
+        emotion_history[request.session_id].append({
+            "emotion": emotion,
+            "timestamp": datetime.now().isoformat()
+        })
         
         # Update current emotions
         current_emotions[request.session_id] = {
@@ -368,12 +396,30 @@ async def detect_emotion(request: EmotionDetectionRequest):
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
+    print("=" * 80)
+    print("CHAT ENDPOINT CALLED - CHECKING FOR FALLBACK TRIGGER")
+    print("=" * 80)
+    print(f"Message: {request.message}")
+    print(f"Request mood: {request.mood}")
+    print(f"Session ID: {request.session_id}")
+    print("=" * 80)
+    
     try:
-        # Get current emotion for this session
-        current_emotion = current_emotions.get(request.session_id, {}).get("emotion", "Neutral")
+        # Use mood from request, fallback to stored emotion
+        mood = request.mood if request.mood else current_emotions.get(request.session_id, {}).get("emotion", "neutral")
         
-        # Generate response
-        response = generate_therapist_response(request.message, current_emotion, request.session_id)
+        print(f"FINAL MOOD USED: {mood}")
+        print("CALLING generate_therapist_response...")
+        
+        response = generate_therapist_response(request.message, mood, request.session_id)
+        
+        print(f"RESPONSE RECEIVED: {response[:100]}")
+        
+        if "I'm here to listen and help" in response:
+            print("*** FALLBACK MESSAGE DETECTED ***")
+            print("*** CHECK generate_therapist_response FUNCTION ***")
+        
+        print("=" * 80)
         
         return ChatResponse(
             response=response,
@@ -381,6 +427,13 @@ async def chat(request: ChatRequest):
         )
         
     except Exception as e:
+        print(f"\n❌ CHAT ENDPOINT ERROR!")
+        print(f"❌ Error: {e}")
+        print(f"❌ Error type: {type(e)}")
+        print(f"🔍 TRIGGER: Exception in chat endpoint")
+        import traceback
+        traceback.print_exc()
+        print(f"{'='*60}\n")
         raise HTTPException(status_code=500, detail=f"Error generating response: {str(e)}")
 
 @app.get("/session/{session_id}/emotions")
@@ -409,7 +462,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 # Store emotion
                 if session_id not in emotion_history:
                     emotion_history[session_id] = []
-                emotion_history[session_id].append(emotion)
+                emotion_history[session_id].append({
+                    "emotion": emotion,
+                    "timestamp": datetime.now().isoformat()
+                })
                 
                 current_emotions[session_id] = {
                 "emotion": emotion,
@@ -425,7 +481,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 
             elif message_data.get("type") == "chat":
                 # Handle chat message
-                current_emotion = current_emotions.get(session_id, {}).get("emotion", "Neutral")
+                current_emotion = current_emotions.get(session_id, {}).get("emotion", "neutral")
                 response = generate_therapist_response(message_data["message"], current_emotion, session_id)
                 
                 await websocket.send_text(json.dumps({

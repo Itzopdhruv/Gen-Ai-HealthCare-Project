@@ -94,6 +94,17 @@ const HealthMetricsForm = ({ abhaId, onMetricsUpdated }) => {
       if (response.data.success) {
         message.success('Health metrics updated successfully!');
         setCurrentMetrics(response.data.data.healthMetrics);
+        
+        // Trigger real-time update for patient dashboard
+        const healthMetricsUpdatedEvent = new CustomEvent('healthMetricsUpdated', {
+          detail: {
+            abhaId: abhaId,
+            healthMetrics: response.data.data.healthMetrics,
+            timestamp: new Date().toISOString()
+          }
+        });
+        window.dispatchEvent(healthMetricsUpdatedEvent);
+        
         if (onMetricsUpdated) {
           onMetricsUpdated(response.data.data.healthMetrics);
         }

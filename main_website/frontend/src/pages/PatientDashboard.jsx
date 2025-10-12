@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { patientAPI } from '../services/api';
-import AIDoctorChatbot from '../components/AIDoctorChatbot';
+import api, { patientAPI } from '../services/api';
+import AIDoctorTab from '../components/AIDoctorTab';
 import PatientAppointmentBooking from '../components/PatientAppointmentBooking';
 import AITherapist from '../components/AITherapist';
+import HealthifyAssistant from '../components/HealthifyAssistant';
 import { 
   Layout, 
   Card, 
@@ -22,7 +23,8 @@ import {
   Tabs,
   Upload,
   message,
-  Spin
+  Spin,
+  notification
 } from 'antd';
 import {
   UserOutlined,
@@ -37,7 +39,9 @@ import {
   SettingOutlined,
   RobotOutlined,
   CameraOutlined,
-  BulbOutlined
+  BulbOutlined,
+  ThunderboltOutlined,
+  DropboxOutlined
 } from '@ant-design/icons';
 import './PatientDashboard.css';
 
@@ -50,12 +54,13 @@ const PatientDashboard = () => {
   const [stats, setStats] = useState({ records: 0, appts: 0, meds: 0, score: 0 });
   const [demographics, setDemographics] = useState({ age: 'N/A', gender: 'N/A', bloodType: 'N/A' });
   const [reloadTick, setReloadTick] = useState(0);
-  const [showAIDoctor, setShowAIDoctor] = useState(false);
-  const [aiDoctorReady, setAiDoctorReady] = useState(false);
   const [healthMetrics, setHealthMetrics] = useState([]);
   const [loadingHealthMetrics, setLoadingHealthMetrics] = useState(false);
+  const [healthMetricsUpdating, setHealthMetricsUpdating] = useState(false);
+  const [showHealthify, setShowHealthify] = useState(false);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+
 
   // Mock data
   const recentRecords = [
@@ -184,11 +189,12 @@ const PatientDashboard = () => {
     console.log('🔄 Loading health metrics for ABHA ID:', user.abhaId);
     setLoadingHealthMetrics(true);
     try {
+      // Add a small delay to prevent rate limiting during development
+      await new Promise(resolve => setTimeout(resolve, 500));
       const response = await api.get(`/health-metrics/latest/${user.abhaId}`);
       console.log('📊 Health metrics API response:', response.data);
       if (response.data.success) {
         const metrics = response.data.data.healthMetrics;
-        console.log('📈 Raw health metrics data:', metrics);
         const formattedMetrics = [
           {
             name: 'Blood Pressure',
@@ -217,6 +223,7 @@ const PatientDashboard = () => {
         ];
         setHealthMetrics(formattedMetrics);
       } else {
+        console.log('❌ No health metrics found, using defaults');
         // Use default metrics if no data found
         setHealthMetrics(defaultHealthMetrics);
       }
@@ -411,11 +418,43 @@ const PatientDashboard = () => {
         }, 500);
       }
     };
+    
+    const onHealthMetricsUpdated = async (e) => {
+      console.log('📊 Health metrics updated event received');
+      if (e?.detail?.abhaId && e.detail.abhaId === user?.abhaId) {
+        console.log('✅ Reloading health metrics...');
+        setHealthMetricsUpdating(true);
+        // Add a small delay to ensure backend has processed the update
+        setTimeout(async () => {
+          try {
+            await loadHealthMetrics();
+            console.log('✅ Health metrics reloaded successfully');
+            
+            // Show notification
+            notification.success({
+              message: 'Health Metrics Updated',
+              description: 'Your health metrics have been updated by your healthcare provider.',
+              placement: 'topRight',
+              duration: 4.5,
+            });
+          } catch (error) {
+            console.error('❌ Error reloading health metrics:', error);
+            // Fallback to normal reload
+            setReloadTick((x) => x + 1);
+          } finally {
+            setHealthMetricsUpdating(false);
+          }
+        }, 2000); // Increased delay to 2 seconds to prevent rate limiting
+      }
+    };
+    
     window.addEventListener('prescriptionCreated', onPrescriptionCreated);
     window.addEventListener('reportUploaded', onReportUploaded);
+    window.addEventListener('healthMetricsUpdated', onHealthMetricsUpdated);
     return () => {
       window.removeEventListener('prescriptionCreated', onPrescriptionCreated);
       window.removeEventListener('reportUploaded', onReportUploaded);
+      window.removeEventListener('healthMetricsUpdated', onHealthMetricsUpdated);
     };
   }, [user?.abhaId]);
 
@@ -457,6 +496,11 @@ const PatientDashboard = () => {
     };
     checkAIDoctor();
   }, []);
+
+  // Render AI Doctor in full screen mode
+  if (activeTab === 'ai-doctor') {
+    return <AIDoctorTab onClose={() => setActiveTab('overview')} />;
+  }
 
   return (
     <Layout className="patient-dashboard">
@@ -592,6 +636,17 @@ const PatientDashboard = () => {
               </div>
               
               <div 
+                className={`menu-item ${activeTab === 'ai-doctor' ? 'active' : ''}`}
+                onClick={() => setActiveTab('ai-doctor')}
+              >
+                <div className="menu-icon">
+                  <RobotOutlined />
+                </div>
+                <span className="menu-text">AI Doctor</span>
+                <div className="menu-indicator"></div>
+              </div>
+              
+              <div 
                 className="menu-item ai-therapist-item"
                 onClick={() => setShowAITherapist(true)}
               >
@@ -601,17 +656,6 @@ const PatientDashboard = () => {
                 <span className="menu-text">AI Therapist</span>
                 <div className="menu-indicator"></div>
               </div>
-            </div>
-            
-            {/* Emergency Button */}
-            <div className="emergency-section">
-              <Button 
-                className="emergency-btn"
-                icon={<HeartOutlined />}
-                onClick={() => setShowAIDoctor(true)}
-              >
-                Emergency
-              </Button>
             </div>
           </div>
         </Sider>
@@ -711,63 +755,118 @@ const PatientDashboard = () => {
                   </Col>
                 </Row>
 
+
                 <Row gutter={[24, 24]} className="slide-up">
-                  <Col xs={24} lg={12}>
-                    <Card title="Health Metrics" className="metrics-card">
+        <Col xs={24}>
+          <div className="health-metrics-container">
+                      {/* Header Section */}
+                      <div className="health-metrics-header">
+                        <div className="header-content">
+                          <div className="header-icon">
+                            <HeartOutlined />
+                          </div>
+                          <div className="header-text">
+                            <Title level={3} className="header-title">Health Metrics</Title>
+                            <Text className="header-subtitle">Real-time vital signs monitoring</Text>
+                          </div>
+                        </div>
+                        <Space>
+                          <Button 
+                            type="primary" 
+                            icon={<EyeOutlined />}
+                            onClick={loadHealthMetrics}
+                            loading={loadingHealthMetrics || healthMetricsUpdating}
+                            className="refresh-button"
+                            ghost
+                          >
+                            Refresh
+                          </Button>
+                          <Button 
+                            type="primary" 
+                            icon={<RobotOutlined />}
+                            onClick={() => setShowHealthify(!showHealthify)}
+                            className="healthify-button"
+                            ghost
+                          >
+                            {showHealthify ? 'Hide Healthify' : 'Healthify AI'}
+                          </Button>
+                        </Space>
+                      </div>
+
+                      {/* Metrics Grid */}
                       {loadingHealthMetrics ? (
-                        <div style={{ textAlign: 'center', padding: '20px' }}>
+                        <div className="metrics-loading">
                           <Spin size="large" />
-                          <div style={{ marginTop: '16px' }}>Loading health metrics...</div>
+                          <div className="loading-text">Loading health metrics...</div>
                         </div>
                       ) : (
-                        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                        <div className="metrics-grid">
                           {healthMetrics.map((metric, index) => (
-                            <div key={index} className="metric-item">
-                              <div className="metric-header">
-                                <Text strong>{metric.name}</Text>
-                                <Tag color={getStatusColor(metric.status)}>
-                                  {metric.status}
-                                </Tag>
+                            <div 
+                              key={index} 
+                              className="metric-card"
+                              style={{ 
+                                animationDelay: `${index * 0.1}s`,
+                                '--metric-color': metric.color 
+                              }}
+                            >
+                              <div className="metric-card-inner">
+                                <div className={`metric-icon ${metric.name.toLowerCase().replace(' ', '-')}-icon`}>
+                                  {metric.name === 'Blood Pressure' && <HeartOutlined />}
+                                  {metric.name === 'Heart Rate' && <ThunderboltOutlined />}
+                                  {metric.name === 'Blood Sugar' && <DropboxOutlined />}
+                                  {metric.name === 'Weight' && <UserOutlined />}
+                                </div>
+                                <div className="metric-content">
+                                  <div className="metric-label">{metric.name}</div>
+                                  <div className="metric-value" style={{ color: metric.color }}>
+                                    {metric.value}
+                                  </div>
+                                  <div className="metric-status">
+                                    <Tag 
+                                      color={getStatusColor(metric.status)}
+                                      className="status-tag"
+                                    >
+                                      {metric.status}
+                                    </Tag>
+                                  </div>
+                                </div>
+                                <div className="metric-progress">
+                                  <Progress 
+                                    percent={85} 
+                                    showInfo={false} 
+                                    strokeColor={metric.color}
+                                    trailColor="rgba(255,255,255,0.2)"
+                                    strokeWidth={6}
+                                    className="progress-bar"
+                                  />
+                                </div>
+                                <div className="metric-glow"></div>
                               </div>
-                              <div className="metric-value">
-                                <Text style={{ fontSize: '18px', color: metric.color }}>
-                                  {metric.value}
-                                </Text>
-                              </div>
-                              <Progress 
-                                percent={85} 
-                                showInfo={false} 
-                                strokeColor={metric.color}
-                                size="small"
-                              />
                             </div>
                           ))}
-                        </Space>
+                          
+                          {healthMetricsUpdating && (
+                            <div className="updating-overlay">
+                              <Spin size="large" />
+                              <div className="updating-text">Updating health metrics...</div>
+                            </div>
+                          )}
+                        </div>
                       )}
-                    </Card>
+                    </div>
                   </Col>
 
-                  <Col xs={24} lg={12}>
-                    <Card title="Recent Activity" className="activity-card">
-                      <Timeline>
-                        <Timeline.Item color="green">
-                          <Text strong>Health checkup completed</Text>
-                          <br />
-                          <Text type="secondary">Apollo Hospitals - 2 days ago</Text>
-                        </Timeline.Item>
-                        <Timeline.Item color="blue">
-                          <Text strong>New prescription added</Text>
-                          <br />
-                          <Text type="secondary">Dr. Rajesh Kumar - 1 week ago</Text>
-                        </Timeline.Item>
-                        <Timeline.Item color="orange">
-                          <Text strong>Appointment scheduled</Text>
-                          <br />
-                          <Text type="secondary">Max Healthcare - 2 weeks ago</Text>
-                        </Timeline.Item>
-                      </Timeline>
-                    </Card>
-                  </Col>
+                  {/* Healthify AI Assistant */}
+                  {showHealthify && (
+                    <Col xs={24}>
+                      <HealthifyAssistant 
+                        healthMetrics={healthMetrics}
+                        user={user}
+                      />
+                    </Col>
+                  )}
+
                 </Row>
               </>
             )}
@@ -954,30 +1053,6 @@ const PatientDashboard = () => {
           </div>
         </Content>
       </Layout>
-      
-      {/* Floating AI Doctor Button */}
-      <div className="floating-ai-button">
-        <Button
-          type="primary"
-          shape="circle"
-          size="large"
-          icon={<RobotOutlined />}
-          onClick={() => setShowAIDoctor(!showAIDoctor)}
-          className={`ai-float-btn ${showAIDoctor ? 'active' : ''} ${aiDoctorReady ? 'ready' : 'loading'}`}
-          title={aiDoctorReady ? "AI Doctor Assistant - Ready" : "AI Doctor Assistant - Loading..."}
-        />
-        {aiDoctorReady && !showAIDoctor && (
-          <div className="ai-status-indicator">
-            <div className="status-dot"></div>
-          </div>
-        )}
-      </div>
-
-      {/* AI Doctor Chatbot */}
-      <AIDoctorChatbot 
-        isVisible={showAIDoctor} 
-        onClose={() => setShowAIDoctor(false)} 
-      />
       
       {/* AI Therapist Modal */}
       <AITherapist 

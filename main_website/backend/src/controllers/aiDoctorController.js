@@ -7,12 +7,14 @@ const AI_DOCTOR_API_URL = process.env.AI_DOCTOR_API_URL || 'http://localhost:800
 
 export const analyzeMedicalInput = async (req, res) => {
   try {
-    const { audioFile, imageFile, textInput } = req.body;
+    const { audioFile, imageFile, textInput, conversationHistory } = req.body;
     
     console.log('AI Doctor Request:', {
       hasTextInput: !!textInput,
       hasAudioFile: !!audioFile,
       hasImageFile: !!imageFile,
+      hasConversationHistory: !!conversationHistory,
+      conversationLength: conversationHistory?.length || 0,
       textInputLength: textInput?.length || 0,
       audioFileLength: audioFile?.length || 0,
       imageFileLength: imageFile?.length || 0
@@ -22,7 +24,8 @@ export const analyzeMedicalInput = async (req, res) => {
     const requestData = {
       text_input: textInput || null,
       audio_file: audioFile || null,
-      image_file: imageFile || null
+      image_file: imageFile || null,
+      conversation_history: conversationHistory || []
     };
     
     // Call FastAPI AI Doctor service

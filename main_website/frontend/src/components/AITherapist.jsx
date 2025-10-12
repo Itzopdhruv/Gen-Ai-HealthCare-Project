@@ -366,10 +366,13 @@ const AITherapist = ({ isVisible, onClose, patientData }) => {
             if (response.ok) {
               const data = await response.json();
               
+              console.log('📊 Emotion detection response:', data);
+              
               // Always update emotion data
               setEmotionData(data);
               
               // Update mood based on detected emotion
+              console.log(`🎭 Backend returned emotion: "${data.emotion}"`);
               updateMoodFromEmotion(data.emotion);
               
               // Store face detection data for visual feedback
@@ -427,16 +430,32 @@ const AITherapist = ({ isVisible, onClose, patientData }) => {
   // Update mood based on detected emotion
   const updateMoodFromEmotion = (emotion) => {
     const emotionToMood = {
+      // Handle both capitalized and lowercase emotions
       'Happy': 'happy',
-      'Sad': 'sad', 
+      'happy': 'happy',
+      'Sad': 'sad',
+      'sad': 'sad',
       'Angry': 'angry',
+      'angry': 'angry',
       'Fear': 'sad',
+      'fear': 'sad',
+      'Fearful': 'sad',
+      'fearful': 'sad',
       'Surprise': 'neutral',
+      'surprise': 'neutral',
+      'Surprised': 'neutral',
+      'surprised': 'neutral',
       'Disgust': 'sad',
-      'Neutral': 'neutral'
+      'disgust': 'sad',
+      'Disgusted': 'sad',
+      'disgusted': 'sad',
+      'Neutral': 'neutral',
+      'neutral': 'neutral'
     };
     
     const newMood = emotionToMood[emotion] || 'neutral';
+    
+    console.log(`🎭 Emotion detected: "${emotion}" -> Mood: "${newMood}"`);
     
     // Only update if mood actually changed
     if (currentMood !== newMood) {
@@ -476,10 +495,12 @@ const AITherapist = ({ isVisible, onClose, patientData }) => {
     try {
       const chatData = {
         message: inputMessage,
-        session_id: sessionId
+        session_id: sessionId,
+        mood: currentMood  // ✅ Pass current mood to backend
       };
       
       console.log('💬 Sending chat message:', chatData);
+      console.log(`🎭 Current mood being sent: "${currentMood}"`);
       
       const response = await fetch('http://localhost:8001/chat', {
         method: 'POST',

@@ -142,6 +142,34 @@ export const login = async (req, res) => {
       });
     }
 
+    // Check if 2FA is enabled
+    if (user.twoFactorAuth && user.twoFactorAuth.enabled) {
+      // Generate temporary token for 2FA verification
+      const tempToken = generateToken(user._id);
+      
+      console.log('🔐 2FA enabled for user:', user.email);
+      console.log('🔐 Generated temp token:', tempToken ? 'EXISTS' : 'MISSING');
+      console.log('🔐 User ID:', user._id);
+      
+      return res.json({
+        success: true,
+        message: '2FA verification required',
+        requires2FA: true,
+        tempToken: tempToken,
+        user: {
+          id: user._id,
+          username: user.username,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          abhaId: user.abhaId,
+          role: user.role,
+          hospitalName: user.hospitalName,
+          hospitalCode: user.hospitalCode
+        }
+      });
+    }
+
     // Update last login
     user.lastLogin = new Date();
     await user.save();
@@ -252,6 +280,92 @@ export const updateProfile = async (req, res) => {
 
   } catch (error) {
     console.error('Update profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+export const loginComplete = async (req, res) => {
+  try {
+    const { userId, tempToken } = req.body;
+    
+    console.log('🔐 Login complete request:', { userId, tempToken: tempToken ? 'EXISTS' : 'MISSING' });
+
+    if (!userId || !tempToken) {
+      console.log('❌ Missing userId or tempToken');
+      return res.status(400).json({
+        success: false,
+        message: 'User ID and temporary token required'
+      });
+    }
+
+    // Verify the temporary token
+    try {
+      console.log('🔐 Verifying temp token...');
+      console.log('🔐 Temp token length:', tempToken.length);
+      console.log('🔐 Temp token first 50 chars:', tempToken.substring(0, 50));
+      console.log('🔐 Temp token last 50 chars:', tempToken.substring(tempToken.length - 50));
+      
+      const decoded = jwt.verify(tempToken, jwt_token);
+      console.log('✅ Temp token decoded:', decoded);
+      
+      if (decoded.userId !== userId) {
+        console.log('❌ Token userId mismatch:', decoded.userId, 'vs', userId);
+        throw new Error('Token mismatch');
+      }
+      console.log('✅ Token verification successful');
+    } catch (error) {
+      console.log('❌ Token verification failed:', error.message);
+      console.log('❌ Full error:', error);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired temporary token'
+      });
+    }
+
+    // Find user
+    console.log('🔐 Finding user:', userId);
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log('❌ User not found:', userId);
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    console.log('✅ User found:', user.email);
+
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
+    console.log('✅ Last login updated');
+
+    // Generate final token
+    const finalToken = generateToken(user._id);
+    console.log('✅ Final token generated');
+
+    res.json({
+      success: true,
+      message: 'Login completed successfully',
+      token: finalToken,
+      user: {
+        id: user._id,
+        username: user.username,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        abhaId: user.abhaId,
+        role: user.role,
+        hospitalName: user.hospitalName,
+        hospitalCode: user.hospitalCode
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Login complete error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
