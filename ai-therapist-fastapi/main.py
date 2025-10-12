@@ -59,9 +59,9 @@ class ChatResponse(BaseModel):
 
 # Initialize Groq AI Client
 try:
-    groq_api_key = os.getenv('GROQ_API_KEY')
+    groq_api_key = os.getenv('GROQ_TOKEN')
     if not groq_api_key:
-        raise ValueError("GROQ_API_KEY not found in environment variables")
+        raise ValueError("GROQ_TOKEN not found in environment variables")
     groq_client = Groq(api_key=groq_api_key)
     print("✅ Groq AI initialized successfully (llama-3.1-8b-instant)")
 except Exception as e:
