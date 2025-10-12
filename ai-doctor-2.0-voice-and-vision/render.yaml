@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: ai-doctor-service
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python fastapi_app.py
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 8000
+      - key: DEBUG
+        value: false
