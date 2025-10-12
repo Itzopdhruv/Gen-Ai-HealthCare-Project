@@ -12,11 +12,20 @@ const api = axios.create({
 // Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
-    // Don't add auth token for 2FA verification endpoints or login endpoints
+    // Don't add auth token for public endpoints
     if (config.url?.includes('/auth/2fa/verify-login') || 
         config.url?.includes('/auth/login-complete') ||
         config.url?.includes('/auth/login') ||
-        config.url?.includes('/auth/register')) {
+        config.url?.includes('/auth/register') ||
+        config.url?.includes('/patient/lookup/') ||
+        config.url?.includes('/patient/profile/') ||
+        config.url?.includes('/patient/generate-abha') ||
+        config.url?.includes('/patient/create-with-abha') ||
+        config.url?.includes('/medical-history/') ||
+        config.url?.includes('/prescription/') ||
+        config.url?.includes('/reports/') ||
+        config.url?.includes('/ai-assistant/') ||
+        config.url?.includes('/patient-auth/')) {
       return config;
     }
     

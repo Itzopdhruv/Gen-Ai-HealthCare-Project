@@ -73,18 +73,35 @@ const TwoFactorAuthSetup = ({ visible, onClose, onSuccess }) => {
 
   // Step 3: Complete setup
   const completeSetup = async () => {
+    // Prevent multiple rapid calls
+    if (loading) {
+      return;
+    }
+
     try {
       setLoading(true);
-      await api.post('/auth/2fa/enable', {
+      const response = await api.post('/auth/2fa/enable', {
         secretKey: secretKey
       });
       
-      message.success('Two-Factor Authentication enabled successfully!');
-      onSuccess(); // Call onSuccess here, not onClose
-      onClose();
+      if (response.data.success) {
+        message.success('Two-Factor Authentication enabled successfully!');
+        onSuccess(); // Call onSuccess here, not onClose
+        onClose();
+      } else {
+        message.error(response.data.message || 'Failed to enable 2FA');
+      }
     } catch (error) {
       console.error('2FA Enable Error:', error);
-      message.error('Failed to enable 2FA. Please try again.');
+      
+      // Handle specific error cases
+      if (error.response?.status === 429) {
+        message.error('Too many attempts. Please wait a few minutes before trying again.');
+      } else if (error.response?.status === 400) {
+        message.error(error.response.data.message || 'Invalid request. Please try again.');
+      } else {
+        message.error('Failed to enable 2FA. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -229,10 +246,11 @@ const TwoFactorAuthSetup = ({ visible, onClose, onSuccess }) => {
               size="large"
               onClick={completeSetup}
               loading={loading}
+              disabled={loading}
               icon={<CheckCircleOutlined />}
               block
             >
-              Enable Two-Factor Authentication
+              {loading ? 'Enabling 2FA...' : 'Enable Two-Factor Authentication'}
             </Button>
           </div>
         )}

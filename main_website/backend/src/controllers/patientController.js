@@ -127,25 +127,30 @@ export const getPatientProfile = async (req, res) => {
 export const lookupPatient = async (req, res) => {
   try {
     const { patientId } = req.params;
-    console.log('Looking up patient with ID:', patientId);
+    console.log('🔍 Looking up patient with ID:', patientId);
+    console.log('🔍 Request headers:', req.headers);
+    console.log('🔍 Request method:', req.method);
+    console.log('🔍 Request URL:', req.url);
 
     // Try to find patient by ABHA ID first
     let patient = await Patient.findOne({ abhaId: patientId });
+    console.log('🔍 Patient found by ABHA ID:', !!patient);
     
     // If not found by ABHA ID, try by MongoDB _id
     if (!patient) {
       patient = await Patient.findById(patientId);
+      console.log('🔍 Patient found by MongoDB ID:', !!patient);
     }
 
     if (!patient) {
-      console.log('Patient not found for ID:', patientId);
+      console.log('❌ Patient not found for ID:', patientId);
       return res.status(404).json({
         success: false,
         message: 'Patient not found'
       });
     }
 
-    console.log('Patient found:', patient.name, patient.abhaId);
+    console.log('✅ Patient found:', patient.name, patient.abhaId);
 
     // Get latest health metrics for this patient
     const latestHealthMetrics = await HealthMetrics.findOne({ abhaId: patient.abhaId })

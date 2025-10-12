@@ -3,11 +3,35 @@ import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import { requireAdmin } from '../middleware/auth.js';
 import User from '../models/User.js';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
 
+// Create specific rate limiters for 2FA operations
+const twoFARateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Allow 10 2FA operations per 15 minutes
+  message: {
+    success: false,
+    message: 'Too many 2FA attempts. Please wait 15 minutes before trying again.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const twoFAEnableRateLimit = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 3, // Allow only 3 enable attempts per 5 minutes
+  message: {
+    success: false,
+    message: 'Too many 2FA enable attempts. Please wait 5 minutes before trying again.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Generate 2FA secret and QR code
-router.post('/generate', async (req, res) => {
+router.post('/generate', twoFARateLimit, async (req, res) => {
   try {
     // Get user from request headers or use a default for testing
     const authHeader = req.headers.authorization;
@@ -86,7 +110,7 @@ router.post('/generate', async (req, res) => {
 });
 
 // Verify 2FA code
-router.post('/verify', async (req, res) => {
+router.post('/verify', twoFARateLimit, async (req, res) => {
   try {
     const { secretKey, verificationCode } = req.body;
     
@@ -169,7 +193,7 @@ router.post('/verify', async (req, res) => {
 });
 
 // Enable 2FA for user
-router.post('/enable', async (req, res) => {
+router.post('/enable', twoFAEnableRateLimit, async (req, res) => {
   try {
     const { secretKey } = req.body;
     
@@ -217,6 +241,14 @@ router.post('/enable', async (req, res) => {
       return res.status(400).json({
         success: false,
         message: '2FA setup not completed. Please complete verification first.'
+      });
+    }
+
+    // Check if 2FA is already enabled
+    if (user.twoFactorAuth.enabled) {
+      return res.status(400).json({
+        success: false,
+        message: '2FA is already enabled for this account.'
       });
     }
     

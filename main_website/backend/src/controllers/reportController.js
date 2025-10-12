@@ -2,6 +2,7 @@ import Report from '../models/Report.js';
 import User from '../models/User.js';
 import Patient from '../models/Patient.js';
 import { extractMedicalData, validateMedicalData, generateAIAnalysis } from '../services/ocrService.js';
+import mongoose from 'mongoose';
 import { summarizeReportWithGemini, summarizeReportFromFile } from '../services/geminiService.js';
 import path from 'path';
 import fs from 'fs';
@@ -21,7 +22,7 @@ export const uploadReport = async (req, res) => {
     }
 
     const { abhaId, documentType, title, description, patientName, patientPhone, patientAge, patientGender, patientBloodType } = req.body;
-    const uploaderId = req.userId || req.patientId; // allow admin/doctor or patient upload
+    const uploaderId = req.userId || req.patientId || new mongoose.Types.ObjectId(); // allow admin/doctor, patient upload, or OTP flow
 
     // Validate required fields (allow ABHA-only uploads; patientName/phone are optional)
     if (!documentType || !title) {

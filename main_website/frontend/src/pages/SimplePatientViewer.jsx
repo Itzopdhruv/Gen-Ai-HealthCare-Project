@@ -55,8 +55,8 @@ const SimplePatientViewer = () => {
   const navigate = useNavigate();
   
   // Modal states
-  const [durationModalVisible, setDurationModalVisible] = useState(true);
-  const [otpModalVisible, setOtpModalVisible] = useState(false);
+  const [durationModalVisible, setDurationModalVisible] = useState(false);
+  const [otpModalVisible, setOtpModalVisible] = useState(true);
   const [accessGranted, setAccessGranted] = useState(false);
   const [addEntryModalVisible, setAddEntryModalVisible] = useState(false);
   const [addPrescriptionModalVisible, setAddPrescriptionModalVisible] = useState(false);
@@ -92,13 +92,7 @@ const SimplePatientViewer = () => {
   const [addPrescriptionForm] = Form.useForm();
   const [uploadReportForm] = Form.useForm();
 
-  // Check if user is authenticated
-  const token = localStorage.getItem('token');
-  if (!token) {
-    message.error('Please log in to access patient records');
-    navigate('/login');
-    return null;
-  }
+  // Authentication check removed - OTP flow handles access control
 
   // Medication management functions
   const addMedication = () => {
@@ -124,24 +118,29 @@ const SimplePatientViewer = () => {
   };
 
   const handleOtpSubmit = () => {
+    console.log('🔐 OTP Submit called with OTP:', otp);
     if (otp === '081106') {
+      console.log('✅ Valid OTP - granting access');
       setLoading(true);
       setTimeout(() => {
         setLoading(false);
         setOtpModalVisible(false);
         setAccessGranted(true);
+        console.log('🎉 Access granted, calling fetchPatientData');
         message.success('Access granted!');
         fetchPatientData();
       }, 1000);
     } else {
+      console.log('❌ Invalid OTP');
       message.error('Invalid OTP. Please enter 081106');
     }
   };
 
   const fetchPatientData = async () => {
     try {
+      console.log('🔄 Starting fetchPatientData for patient:', patientId);
       setDataLoading(true);
-      console.log('Fetching data for patient:', patientId);
+      console.log('📊 Data loading set to true');
       
       // Fetch patient details
       try {
@@ -266,9 +265,10 @@ const SimplePatientViewer = () => {
       }
 
     } catch (error) {
-      console.error('Error fetching patient data:', error);
+      console.error('❌ Error fetching patient data:', error);
       message.error('Failed to fetch patient data');
     } finally {
+      console.log('✅ Setting dataLoading to false');
       setDataLoading(false);
     }
   };
@@ -277,13 +277,7 @@ const SimplePatientViewer = () => {
     try {
       setLoading(true);
       
-      // Check if user is authenticated
-      const token = localStorage.getItem('token');
-      if (!token) {
-        message.error('Please log in to add medical history entries');
-        navigate('/login');
-        return;
-      }
+      // Authentication handled by OTP flow
       
       const entryData = {
         abhaId: patientId,
@@ -470,30 +464,18 @@ const SimplePatientViewer = () => {
 
   const handleViewReport = (reportId) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        message.error('Please log in to view reports');
-        navigate('/login');
-        return;
-      }
+      // Authentication handled by OTP flow
       
       console.log('🔍 Viewing report:', reportId);
-      console.log('🔑 Using token:', token ? `${token.substring(0, 20)}...` : 'No token');
       
       // Use the proxy URL instead of direct backend URL
       const viewUrl = `/api/reports/${reportId}/view`;
       
-      // Create a form to submit with token
+      // Create a form to submit
       const form = document.createElement('form');
       form.method = 'GET';
       form.action = viewUrl;
       form.target = '_blank';
-      
-      const tokenInput = document.createElement('input');
-      tokenInput.type = 'hidden';
-      tokenInput.name = 'token';
-      tokenInput.value = token;
-      form.appendChild(tokenInput);
       
       document.body.appendChild(form);
       form.submit();
@@ -508,15 +490,9 @@ const SimplePatientViewer = () => {
 
   const handleDownloadReport = async (reportId) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        message.error('Please log in to download reports');
-        navigate('/login');
-        return;
-      }
+      // Authentication handled by OTP flow
       
       console.log('📥 Downloading report:', reportId);
-      console.log('🔑 Using token:', token ? `${token.substring(0, 20)}...` : 'No token');
       
       const response = await api.get(`/reports/${reportId}/download`, {
         responseType: 'blob'
@@ -564,15 +540,9 @@ const SimplePatientViewer = () => {
 
   const handleDeleteReport = async (reportId) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        message.error('Please log in to delete reports');
-        navigate('/login');
-        return;
-      }
+      // Authentication handled by OTP flow
       
       console.log('🗑️ Deleting report:', reportId);
-      console.log('🔑 Using token:', token ? `${token.substring(0, 20)}...` : 'No token');
       
       // Show confirmation dialog
       const confirmed = window.confirm('Are you sure you want to delete this report? This action cannot be undone.');
@@ -712,6 +682,7 @@ const SimplePatientViewer = () => {
   };
 
   if (accessGranted) {
+    console.log('🏥 Rendering dashboard - accessGranted:', accessGranted, 'dataLoading:', dataLoading);
     return (
       <>
         <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
@@ -1510,6 +1481,9 @@ const SimplePatientViewer = () => {
                     <Text>Loading {activeTab === 'history' ? 'medical history' : 
                                  activeTab === 'prescriptions' ? 'prescriptions' : 
                                  'reports'}...</Text>
+                    <div style={{ marginTop: '8px', fontSize: '12px', color: '#999' }}>
+                      Debug: dataLoading = {dataLoading.toString()}
+                    </div>
                   </div>
                 </div>
               ) : (

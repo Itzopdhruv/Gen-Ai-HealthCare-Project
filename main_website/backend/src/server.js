@@ -18,10 +18,17 @@ if (result.error) {
   console.log('📦 Parsed values:', result.parsed);
 }
 
-// Debug: Check if Gemini API key is loaded
+// Set GROQ_API_KEY for testing if not in environment
+if (!process.env.GROQ_API_KEY) {
+  process.env.GROQ_API_KEY = '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';
+  console.log('🔧 Set GROQ_API_KEY for testing');
+}
+
+// Debug: Check if API keys are loaded
 console.log('🔍 Environment check:');
 console.log('PORT:', process.env.PORT);
 console.log('GEMINI_API_KEY:', process.env.GEMINI_API_KEY ? `${process.env.GEMINI_API_KEY.substring(0, 10)}...` : 'undefined');
+console.log('GROQ_API_KEY:', process.env.GROQ_API_KEY ? `${process.env.GROQ_API_KEY.substring(0, 10)}...` : 'undefined');
 
 // Now import everything else
 import express from 'express';
@@ -222,7 +229,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 
 // Create HTTP server
 const server = http.createServer(app);

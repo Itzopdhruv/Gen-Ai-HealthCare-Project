@@ -2,6 +2,7 @@ import MedicalHistory from '../models/MedicalHistory.js';
 import User from '../models/User.js';
 import Patient from '../models/Patient.js';
 import { validationResult } from 'express-validator';
+import mongoose from 'mongoose';
 
 export const createMedicalHistoryEntry = async (req, res) => {
   try {
@@ -40,7 +41,8 @@ export const createMedicalHistoryEntry = async (req, res) => {
       labResults
     } = req.body;
 
-    const adminId = req.user?.id || req.userId;
+    // For OTP flow, we don't have an authenticated user, so we'll generate a valid ObjectId
+    const adminId = req.user?.id || req.userId || new mongoose.Types.ObjectId();
     
     console.log('👤 Admin ID:', adminId);
     console.log('🔐 Request user:', req.user);

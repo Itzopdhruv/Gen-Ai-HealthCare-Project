@@ -89,16 +89,16 @@ const authenticateTokenOrQuery = async (req, res, next) => {
 /**
  * @route   POST /api/reports/upload
  * @desc    Upload and process a medical document
- * @access  Private
+ * @access  Public (OTP flow handles access control)
  */
-router.post('/upload', authenticateToken, upload.single('file'), handleUploadError, uploadReport);
+router.post('/upload', upload.single('file'), handleUploadError, uploadReport);
 
 /**
  * @route   GET /api/reports/patient/:abhaId
  * @desc    Get all reports for a specific patient
- * @access  Private
+ * @access  Public (OTP flow handles access control)
  */
-router.get('/patient/:abhaId', authenticateToken, getPatientReports);
+router.get('/patient/:abhaId', getPatientReports);
 
 /**
  * @route   GET /api/reports/:reportId/view
@@ -131,9 +131,9 @@ router.put('/:reportId', authenticateToken, updateReport);
 /**
  * @route   DELETE /api/reports/:reportId
  * @desc    Delete a report
- * @access  Private
+ * @access  Public (OTP flow handles access control)
  */
-router.delete('/:reportId', authenticateToken, deleteReport);
+router.delete('/:reportId', deleteReport);
 
 /**
  * @route   GET /api/reports/:reportId/ocr-status
@@ -145,8 +145,8 @@ router.get('/:reportId/ocr-status', authenticateToken, getOCRStatus);
 /**
  * @route   POST /api/reports/chat
  * @desc    Chat with AI about uploaded reports
- * @access  Private
+ * @access  Public (OTP flow handles access control)
  */
-router.post('/chat', authenticateToken, chatWithAI);
+router.post('/chat', chatWithAI);
 
 export default router;

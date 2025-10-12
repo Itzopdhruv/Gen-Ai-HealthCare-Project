@@ -1,4 +1,8 @@
-import { getGeminiModel, summarizeReportWithGemini } from '../services/geminiService.js';
+import dotenv from 'dotenv';
+import { generateMedicalResponse, summarizeReportWithGroq } from '../services/groqService.js';
+
+// Load environment variables
+dotenv.config();
 import Report from '../models/Report.js';
 import HealthRecord from '../models/HealthRecord.js';
 import MedicalHistory from '../models/MedicalHistory.js';
@@ -19,10 +23,9 @@ export const chatWithAIAssistant = async (req, res) => {
       });
     }
 
-    // Get Gemini model
-    const model = getGeminiModel();
-    if (!model) {
-      console.log('AI Assistant: Gemini model not available, using fallback response');
+    // Check if Groq API key is available
+    if (!process.env.GROQ_API_KEY) {
+      console.log('AI Assistant: Groq API key not available, using fallback response');
       // Provide a helpful fallback response instead of error
       const fallbackResponse = `I apologize, but the AI service is currently unavailable. However, I can still help you with the patient data I have access to:
 
@@ -86,101 +89,28 @@ Please ask specific questions about the available medical records, and I'll do m
       });
     }
 
-    // Reports analysis
-    let reportsSummary = '';
-    if (reports && reports.length > 0) {
-      reportsSummary += `Medical Reports Analysis:\n`;
-      
-      for (const report of reports) {
-        try {
-          // Try to get AI summary of the report
-          let reportSummary = '';
-          
-          if (report.filePath) {
-            // If file exists, analyze it with Gemini
-            const fileAnalysis = await summarizeReportFromFile({
-              filePath: report.filePath,
-              mimeType: report.mimeType,
-              title: report.title || 'Medical Report'
-            });
-            reportSummary = fileAnalysis.summary || 'Unable to analyze report content';
-          } else if (report.ocrData) {
-            // Use OCR data if available
-            const ocrAnalysis = await summarizeReportWithGemini({
-              title: report.title || 'Medical Report',
-              documentType: report.documentType || 'General',
-              ocrText: report.ocrData,
-              structuredData: {}
-            });
-            reportSummary = ocrAnalysis.summary || 'Unable to analyze OCR data';
-          } else {
-            reportSummary = `Report: ${report.title || 'Untitled'} (${report.documentType || 'General'}) - No content available for analysis`;
-          }
-
-          reportsSummary += `\n${report.title || 'Report'} (${report.documentType || 'General'}):\n`;
-          reportsSummary += `${reportSummary}\n`;
-          reportsSummary += `Upload Date: ${new Date(report.uploadDate).toLocaleDateString()}\n`;
-          reportsSummary += `---\n`;
-        } catch (error) {
-          console.error('Error analyzing report:', error);
-          reportsSummary += `\n${report.title || 'Report'}: Error analyzing content\n`;
-        }
-      }
-    }
-
-    // Prepare chat context
-    let chatContext = '';
-    if (chatHistory && chatHistory.length > 0) {
-      chatContext = '\nPrevious conversation:\n';
-      chatHistory.slice(-5).forEach(msg => {
-        chatContext += `${msg.type === 'user' ? 'Doctor' : 'AI'}: ${msg.content}\n`;
-      });
-    }
-
-    // Create realistic prompt based on available data
-    const prompt = `You are an AI medical assistant helping a doctor with a patient's health information. 
-
-PATIENT INFORMATION:
-${patientSummary}
-
-${reportsSummary}
-
-${chatContext}
-
-DOCTOR'S QUESTION: ${message}
-
-IMPORTANT: Format your response as exactly 5-7 crisp, readable bullet points with a line break after each point. Each point should be:
-• Clear and concise (1-2 sentences max)
-• Focused on one key finding or recommendation
-• Easy to scan and understand
-• Actionable when possible
-
-Structure your response like this with line breaks:
-• Point 1: Key finding or observation
-
-• Point 2: Critical concern or issue
-
-• Point 3: Specific recommendation
-
-• Point 4: Data gap or limitation
-
-• Point 5: Next steps or follow-up needed
-
-• Point 6: Additional context (if needed)
-
-• Point 7: Urgent action required (if applicable)
-
-Add a blank line after each bullet point for better readability. Avoid lengthy paragraphs, bold formatting, or complex structures.`;
-
-    // Generate AI response
+    // Generate AI response using Groq
     let aiResponse;
     try {
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      aiResponse = response.text();
-    } catch (geminiError) {
-      console.error('Gemini API error:', geminiError);
-      // Fallback response when Gemini fails
+      console.log('🤖 Attempting to call Groq API...');
+      console.log('📊 Patient context:', { patientId, patientName: patientData?.name, medicalHistoryCount: medicalHistory?.length });
+      
+      aiResponse = await generateMedicalResponse(message, {
+        patientId,
+        patientData,
+        medicalHistory,
+        prescriptions,
+        reports
+      }, chatHistory);
+      
+      console.log('✅ Groq API call successful!');
+      console.log('📝 Response length:', aiResponse?.length);
+    } catch (groqError) {
+      console.error('❌ Groq API error:', groqError);
+      console.error('❌ Error details:', groqError.message);
+      console.error('❌ Error stack:', groqError.stack);
+      
+      // Fallback response when Groq fails
       aiResponse = `• AI service temporarily unavailable - using available patient data
 
 • Patient: ${patientData?.name || 'Unknown'} with ${medicalHistory?.length || 0} medical entries
@@ -212,46 +142,24 @@ Add a blank line after each bullet point for better readability. Avoid lengthy p
   }
 };
 
-// Helper function to analyze report files
+// Helper function to analyze report files with Groq
 const summarizeReportFromFile = async ({ filePath, mimeType, title }) => {
   try {
     const fs = await import('fs');
-    const path = await import('path');
     
     // Read file content
     const fileBuffer = fs.readFileSync(filePath);
-    const base64Content = fileBuffer.toString('base64');
+    const fileContent = fileBuffer.toString('utf8');
     
-    // Use Gemini to analyze the file
-    const model = getGeminiModel();
-    const prompt = `Analyze this medical report and provide a comprehensive summary focusing on:
-    1. Key findings and diagnoses
-    2. Important measurements and values
-    3. Recommendations or next steps
-    4. Any concerning or notable observations
+    // Use Groq to analyze the file
+    const reportSummary = await summarizeReportWithGroq(fileContent, title);
     
-    Report Title: ${title}
-    File Type: ${mimeType}
-    
-    Please provide a detailed but concise analysis.`;
-
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: mimeType,
-          data: base64Content
-        }
-      },
-      prompt
-    ]);
-    
-    const response = await result.response;
     return {
-      summary: response.text(),
+      summary: reportSummary,
       success: true
     };
   } catch (error) {
-    console.error('Error analyzing file:', error);
+    console.error('Error analyzing file with Groq:', error);
     return {
       summary: 'Unable to analyze this report file',
       success: false

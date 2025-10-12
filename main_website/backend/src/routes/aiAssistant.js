@@ -4,9 +4,9 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// AI Assistant routes
-router.post('/chat', authenticateToken, chatWithAIAssistant);
-router.get('/patient-context/:patientId', authenticateToken, getPatientContext);
+// AI Assistant routes (OTP flow handles access control)
+router.post('/chat', chatWithAIAssistant);
+router.get('/patient-context/:patientId', getPatientContext);
 
 export default router;
 

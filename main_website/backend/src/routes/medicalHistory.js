@@ -10,9 +10,9 @@ import { validateCreateMedicalHistory } from '../middleware/validation.js';
 
 const router = express.Router();
 
-// Protected routes for medical history management
-router.post('/create', authenticateToken, validateCreateMedicalHistory, createMedicalHistoryEntry);
-router.get('/:abhaId', authenticateToken, getMedicalHistory);
+// Public routes for medical history management (OTP flow handles access control)
+router.post('/create', validateCreateMedicalHistory, createMedicalHistoryEntry);
+router.get('/:abhaId', getMedicalHistory);
 router.put('/:entryId', authenticateToken, updateMedicalHistoryEntry);
 router.delete('/:entryId', authenticateToken, deleteMedicalHistoryEntry);
 

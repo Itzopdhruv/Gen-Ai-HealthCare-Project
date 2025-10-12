@@ -77,11 +77,7 @@ function App() {
                       />
                       <Route 
                         path="/patient/:id" 
-                        element={
-                          <ProtectedRoute>
-                            <SimplePatientViewer />
-                          </ProtectedRoute>
-                        } 
+                        element={<SimplePatientViewer />} 
                       />
                       <Route 
                         path="/test-patient/:id" 

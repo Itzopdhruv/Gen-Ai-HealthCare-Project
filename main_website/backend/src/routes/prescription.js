@@ -10,9 +10,9 @@ import { validateCreatePrescription } from '../middleware/validation.js';
 
 const router = express.Router();
 
-// Protected routes for prescription management
-router.post('/create', authenticateToken, validateCreatePrescription, createPrescription);
-router.get('/:abhaId', authenticateToken, getPrescriptions);
+// Public routes for prescription management (OTP flow handles access control)
+router.post('/create', validateCreatePrescription, createPrescription);
+router.get('/:abhaId', getPrescriptions);
 router.get('/details/:prescriptionId', authenticateToken, getPrescriptionById);
 router.put('/:prescriptionId/status', authenticateToken, updatePrescriptionStatus);
 

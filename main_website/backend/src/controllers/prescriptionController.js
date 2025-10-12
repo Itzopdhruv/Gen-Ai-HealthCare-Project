@@ -2,6 +2,7 @@ import Prescription from '../models/Prescription.js';
 import Patient from '../models/Patient.js';
 import User from '../models/User.js';
 import { validationResult } from 'express-validator';
+import mongoose from 'mongoose';
 
 export const createPrescription = async (req, res) => {
   try {
@@ -27,7 +28,7 @@ export const createPrescription = async (req, res) => {
       insuranceAmount
     } = req.body;
 
-    const creatorId = req.userId || req.patientId; // support admin/doctor or patient tokens
+    const creatorId = req.userId || req.patientId || new mongoose.Types.ObjectId(); // support admin/doctor, patient tokens, or OTP flow
 
     // Find patient by ABHA ID in Patient collection (fallback to legacy User model)
     let patient = await Patient.findOne({ abhaId });
