@@ -83,32 +83,44 @@ export const validateVerifyOTP = [
 ];
 
 export const validateCreateMedicalHistory = [
+  // Very lenient validation - only check if required fields exist
   body('abhaId')
-    .notEmpty()
+    .custom((value) => {
+      return value && value.toString().trim().length > 0;
+    })
     .withMessage('ABHA ID is required'),
   
   body('entryType')
-    .isIn(['consultation', 'prescription', 'lab_test', 'scan', 'surgery', 'vaccination', 'other'])
-    .withMessage('Invalid entry type'),
+    .custom((value) => {
+      return value && value.toString().trim().length > 0;
+    })
+    .withMessage('Entry type is required'),
   
   body('date')
-    .isISO8601()
+    .custom((value) => {
+      if (!value) return false;
+      const date = new Date(value);
+      return !isNaN(date.getTime());
+    })
     .withMessage('Please provide a valid date'),
   
   body('summary')
-    .trim()
-    .isLength({ min: 10, max: 1000 })
-    .withMessage('Summary must be between 10 and 1000 characters'),
+    .custom((value) => {
+      return value && value.toString().trim().length > 0;
+    })
+    .withMessage('Summary is required'),
   
   body('consultingDoctor')
-    .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('Consulting doctor name must be between 2 and 100 characters'),
+    .custom((value) => {
+      return value && value.toString().trim().length > 0;
+    })
+    .withMessage('Consulting doctor name is required'),
   
   body('hospitalClinicName')
-    .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('Hospital/Clinic name must be between 2 and 100 characters')
+    .custom((value) => {
+      return value && value.toString().trim().length > 0;
+    })
+    .withMessage('Hospital/Clinic name is required')
 ];
 
 export const validateCreatePrescription = [

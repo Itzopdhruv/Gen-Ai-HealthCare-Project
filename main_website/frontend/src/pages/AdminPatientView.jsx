@@ -71,7 +71,7 @@ const AdminPatientView = () => {
       date: '21/09/2025',
       type: 'e-Prescription Issued',
       doctor: 'Dr. Aarogya',
-      hospital: 'AayuLink Digital Clinic',
+      hospital: 'MediCare Digital Clinic',
       medications: 'Ilabxo (200mg)',
       id: 1
     },
@@ -79,7 +79,7 @@ const AdminPatientView = () => {
       date: '21/09/2025',
       type: 'e-Prescription Issued',
       doctor: 'Dr. Aarogya',
-      hospital: 'AayuLink Digital Clinic',
+      hospital: 'MediCare Digital Clinic',
       medications: 'Paracetamol (200mg)',
       id: 2
     }
@@ -104,8 +104,9 @@ const AdminPatientView = () => {
         <div className="header-content">
           <div className="header-left">
             <div className="logo">
-              <span className="logo-aayu">आ</span>
-              <span className="logo-link">yulink</span>
+              <span className="logo-medicare">Medi</span>
+              <span className="logo-care">Care</span>
+              <span className="logo-heart">❤️</span>
             </div>
             <Title level={4} className="welcome-text">
               Admin - Patient Records

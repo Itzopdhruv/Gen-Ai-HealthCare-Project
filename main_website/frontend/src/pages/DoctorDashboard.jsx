@@ -178,8 +178,9 @@ const DoctorDashboard = () => {
         <div className="header-content">
           <div className="header-left">
             <div className="logo">
-              <span className="logo-aayu">आ</span>
-              <span className="logo-link">yulink</span>
+              <span className="logo-medicare">Medi</span>
+              <span className="logo-care">Care</span>
+              <span className="logo-heart">❤️</span>
             </div>
             <Title level={4} className="welcome-text">
               Dr. Rajesh Kumar - Cardiologist

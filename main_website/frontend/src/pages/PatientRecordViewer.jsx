@@ -125,7 +125,7 @@ const PatientRecordViewer = () => {
         id: Date.now(),
         type: 'e-Prescription Issued',
         date: new Date().toISOString(),
-        location: 'At AayuLink Digital Clinic with Dr. Aarogya',
+        location: 'At MediCare Digital Clinic with Dr. Aarogya',
         medications: values.medications ? [{ name: values.medications, dosage: values.dosage || 'N/A' }] : [],
         description: values.description || '',
         doctor: values.doctor || 'Dr. Aarogya'
@@ -160,14 +160,14 @@ const PatientRecordViewer = () => {
         collapsed={sidebarCollapsed}
       >
         <div className="sidebar-header">
-          <div className="aayulink-logo">
+          <div className="medicare-logo">
             <div className="logo-grid">
               <div className="logo-square"></div>
               <div className="logo-square"></div>
               <div className="logo-square"></div>
               <div className="logo-square"></div>
             </div>
-            <Text className="logo-text">AayuLink</Text>
+            <Text className="logo-text">MediCare ❤️</Text>
           </div>
           <Button 
             type="text" 
@@ -377,7 +377,7 @@ const PatientRecordViewer = () => {
                           <Text className="entry-date">{formatDate(record.date)}</Text>
                         </div>
                         <div className="entry-details">
-                          <Text className="entry-location">At AayuLink Digital Clinic with Dr. Aarogya</Text>
+                          <Text className="entry-location">At MediCare Digital Clinic with Dr. Aarogya</Text>
                           {record.medications && record.medications.length > 0 && (
                             <div className="medication-details">
                               <Text className="medication-text">

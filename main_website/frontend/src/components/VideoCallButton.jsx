@@ -129,7 +129,7 @@ const VideoCallButton = ({
     }
     
     // Create Jitsi URL with proper display names and admin as master
-    const jitsiUrl = `https://meet.jit.si/${meetingIdFromAppointment}?jitsi_meet_external_api=1&config.prejoinPageEnabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=true&userInfo.displayName=${encodeURIComponent(displayName)}&userInfo.email=${encodeURIComponent(isAdmin ? 'doctor@ayulink.com' : 'patient@ayulink.com')}${isAdmin ? '&config.startWithAudioMuted=false&config.startWithVideoMuted=false&config.enableWelcomePage=false' : ''}`;
+    const jitsiUrl = `https://meet.jit.si/${meetingIdFromAppointment}?jitsi_meet_external_api=1&config.prejoinPageEnabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=true&userInfo.displayName=${encodeURIComponent(displayName)}&userInfo.email=${encodeURIComponent(isAdmin ? 'doctor@medicare.com' : 'patient@medicare.com')}${isAdmin ? '&config.startWithAudioMuted=false&config.startWithVideoMuted=false&config.enableWelcomePage=false' : ''}`;
     
     // Open Jitsi Meet in new tab
     const jitsiWindow = window.open(jitsiUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
@@ -806,7 +806,7 @@ const VideoCallButton = ({
                     const patientName = appointment.patient?.name || 'Patient';
                     const displayName = isAdmin ? `Dr. ${doctorName}` : patientName;
                     
-                    const jitsiUrl = `https://meet.jit.si/${meetingId}?jitsi_meet_external_api=1&config.prejoinPageEnabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=true&userInfo.displayName=${encodeURIComponent(displayName)}&userInfo.email=${encodeURIComponent(isAdmin ? 'doctor@ayulink.com' : 'patient@ayulink.com')}${isAdmin ? '&config.startWithAudioMuted=false&config.startWithVideoMuted=false&config.enableWelcomePage=false' : ''}`;
+                    const jitsiUrl = `https://meet.jit.si/${meetingId}?jitsi_meet_external_api=1&config.prejoinPageEnabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=true&userInfo.displayName=${encodeURIComponent(displayName)}&userInfo.email=${encodeURIComponent(isAdmin ? 'doctor@medicare.com' : 'patient@medicare.com')}${isAdmin ? '&config.startWithAudioMuted=false&config.startWithVideoMuted=false&config.enableWelcomePage=false' : ''}`;
                     window.open(jitsiUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
                     handleCloseModal();
                   }}

@@ -5,12 +5,24 @@ import { validationResult } from 'express-validator';
 
 export const createMedicalHistoryEntry = async (req, res) => {
   try {
+    console.log('📝 Medical History Request Body:', JSON.stringify(req.body, null, 2));
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.error('❌ Validation errors:', errors.array());
+      console.error('❌ Detailed validation errors:');
+      errors.array().forEach((error, index) => {
+        console.error(`  ${index + 1}. Field: ${error.path}, Value: "${error.value}", Message: ${error.msg}`);
+      });
       return res.status(400).json({ 
         success: false, 
         message: 'Validation failed', 
-        errors: errors.array() 
+        errors: errors.array(),
+        details: errors.array().map(err => ({
+          field: err.path,
+          value: err.value,
+          message: err.msg
+        }))
       });
     }
 
@@ -28,19 +40,30 @@ export const createMedicalHistoryEntry = async (req, res) => {
       labResults
     } = req.body;
 
-    const adminId = req.userId;
+    const adminId = req.user?.id || req.userId;
+    
+    console.log('👤 Admin ID:', adminId);
+    console.log('🔐 Request user:', req.user);
 
     // Find patient by ABHA ID (prefer Patient, fallback to legacy User)
+    console.log('🔍 Looking for patient with ABHA ID:', abhaId);
     let patient = await Patient.findOne({ abhaId });
+    console.log('👤 Patient found in Patient model:', !!patient);
+    
     if (!patient) {
       patient = await User.findOne({ abhaId, role: 'patient' });
+      console.log('👤 Patient found in User model:', !!patient);
     }
+    
     if (!patient) {
+      console.log('❌ No patient found with ABHA ID:', abhaId);
       return res.status(404).json({
         success: false,
         message: 'Patient not found with this ABHA ID'
       });
     }
+    
+    console.log('✅ Patient found:', { id: patient._id, name: patient.name, abhaId: patient.abhaId });
 
     const medicalHistoryData = {
       patientId: patient._id,

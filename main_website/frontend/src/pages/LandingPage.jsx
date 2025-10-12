@@ -120,7 +120,7 @@ const LandingPage = () => {
     {
       name: "Dr. Priya Sharma",
       role: "Chief Medical Officer, Apollo Hospitals",
-      content: "AayuLink has revolutionized how we access patient records. The seamless integration saves us hours every day and improves patient care quality.",
+      content: "MediCare has revolutionized how we access patient records. The seamless integration saves us hours every day and improves patient care quality.",
       avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=100&h=100&fit=crop&crop=face",
       rating: 5
     },
@@ -154,8 +154,9 @@ const LandingPage = () => {
       <header className="header">
         <div className="header-content">
           <div className="logo">
-            <span className="logo-aayu">आ</span>
-            <span className="logo-link">yulink</span>
+            <span className="logo-medicare">Medi</span>
+            <span className="logo-care">Care</span>
+            <span className="logo-heart">❤️</span>
             <Tag color="green" className="beta-tag">BETA</Tag>
           </div>
           <nav className="nav-links">
@@ -227,8 +228,9 @@ const LandingPage = () => {
             <Text>Powered by ABDM</Text>
           </div>
           <div className="hero-logo">
-            <span className="logo-aayu">आ</span>
-            <span className="logo-link">yulink</span>
+            <span className="logo-medicare">Medi</span>
+            <span className="logo-care">Care</span>
+            <span className="logo-heart">❤️</span>
           </div>
           <Title level={1} className="hero-title">
             The <span className="highlight-orange">Aadhaar</span> for your <span className="highlight-blue">Health</span>
@@ -410,7 +412,7 @@ const LandingPage = () => {
               Our <span className="highlight-blue">Healthcare Network</span>
             </Title>
             <Paragraph className="network-description">
-              AayuLink connects over 5,000 hospitals across India, ensuring your health data is accessible wherever you need medical care.
+              MediCare connects over 5,000 hospitals across India, ensuring your health data is accessible wherever you need medical care.
             </Paragraph>
             <div className="network-stats-banner">
               <div className="stat-banner-item">
@@ -645,8 +647,9 @@ const LandingPage = () => {
         <div className="container">
           <div className="footer-content">
             <div className="footer-logo">
-              <span className="logo-aayu">आ</span>
-              <span className="logo-link">yulink</span>
+              <span className="logo-medicare">Medi</span>
+              <span className="logo-care">Care</span>
+              <span className="logo-heart">❤️</span>
             </div>
             <div className="footer-links">
               <a href="#features">Features</a>
@@ -656,7 +659,7 @@ const LandingPage = () => {
             </div>
             <div className="footer-text">
               <Text type="secondary">
-                © 2025 AayuLink. All rights reserved. Aligned with ABDM (Ayushman Bharat Digital Mission)
+                © 2025 MediCare. All rights reserved. Aligned with ABDM (Ayushman Bharat Digital Mission)
               </Text>
             </div>
           </div>

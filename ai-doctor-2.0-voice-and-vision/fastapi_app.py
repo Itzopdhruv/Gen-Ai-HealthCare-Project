@@ -494,9 +494,19 @@ async def analyze_endpoint(request_data: dict):
         # Handle image-only analysis
         elif image_file and not audio_file and not text_input:
             try:
-                # Decode base64 image
-                import base64
-                image_data = base64.b64decode(image_file)
+                # Check if image_file is a Cloudinary URL or base64
+                if image_file.startswith('http'):
+                    # It's a Cloudinary URL, download the image
+                    import requests
+                    response = requests.get(image_file)
+                    if response.status_code == 200:
+                        image_data = response.content
+                    else:
+                        raise Exception(f"Failed to download image from URL: {response.status_code}")
+                else:
+                    # It's base64 data
+                    import base64
+                    image_data = base64.b64decode(image_file)
                 
                 # Save to temporary file
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp_file:
@@ -556,9 +566,19 @@ async def analyze_endpoint(request_data: dict):
         # Handle combined inputs (image + text)
         else:
             try:
-                # Decode base64 image
-                import base64
-                image_data = base64.b64decode(image_file)
+                # Check if image_file is a Cloudinary URL or base64
+                if image_file.startswith('http'):
+                    # It's a Cloudinary URL, download the image
+                    import requests
+                    response = requests.get(image_file)
+                    if response.status_code == 200:
+                        image_data = response.content
+                    else:
+                        raise Exception(f"Failed to download image from URL: {response.status_code}")
+                else:
+                    # It's base64 data
+                    import base64
+                    image_data = base64.b64decode(image_file)
                 
                 # Save to temporary file
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp_file:

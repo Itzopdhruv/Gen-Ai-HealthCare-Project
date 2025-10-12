@@ -2,6 +2,7 @@ import axios from 'axios';
 import FormData from 'form-data';
 import fs from 'fs';
 import path from 'path';
+import { uploadBase64ToCloudinary } from '../services/cloudinaryService.js';
 
 const AI_DOCTOR_API_URL = process.env.AI_DOCTOR_API_URL || 'http://localhost:8000';
 
@@ -20,11 +21,29 @@ export const analyzeMedicalInput = async (req, res) => {
       imageFileLength: imageFile?.length || 0
     });
     
+    // Handle image upload to Cloudinary if present
+    let cloudinaryImageUrl = null;
+    if (imageFile) {
+      console.log('📸 Uploading image to Cloudinary...');
+      const uploadResult = await uploadBase64ToCloudinary(imageFile, 'aayulink/ai-doctor');
+      if (uploadResult.success) {
+        cloudinaryImageUrl = uploadResult.url;
+        console.log('✅ Image uploaded to Cloudinary:', cloudinaryImageUrl);
+      } else {
+        console.error('❌ Failed to upload image to Cloudinary:', uploadResult.error);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to upload image',
+          error: uploadResult.error
+        });
+      }
+    }
+
     // Prepare JSON data for FastAPI
     const requestData = {
       text_input: textInput || null,
       audio_file: audioFile || null,
-      image_file: imageFile || null,
+      image_file: cloudinaryImageUrl || null, // Use Cloudinary URL instead of base64
       conversation_history: conversationHistory || []
     };
     

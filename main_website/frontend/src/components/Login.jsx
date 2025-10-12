@@ -413,8 +413,9 @@ const Login = () => {
 
         <div className="login-header">
           <Title level={2} className="login-title">
-            <span className="title-main">Aayu</span>
-            <span className="title-accent">Link</span>
+            <span className="title-main">Medi</span>
+            <span className="title-accent">Care</span>
+            <span className="title-heart">❤️</span>
             {showSuccessAnimation && <RocketOutlined className="title-rocket" />}
           </Title>
           {showSuccessAnimation && (

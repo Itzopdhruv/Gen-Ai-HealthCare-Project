@@ -207,7 +207,7 @@ const SimplePatientViewer = () => {
             date: '2025-09-21T00:00:00.000Z',
             summary: 'Patient visited for routine checkup and was diagnosed with mild fever',
             consultingDoctor: 'Dr. Aarogya',
-            hospitalClinicName: 'AayuLink Digital Clinic',
+            hospitalClinicName: 'MediCare Digital Clinic',
             diagnosis: { primary: 'Viral Fever' },
             medications: []
           }
@@ -229,7 +229,7 @@ const SimplePatientViewer = () => {
             prescriptionId: '1E614E',
             issuedDate: '2025-09-21T00:00:00.000Z',
             doctor: { name: 'Dr. Aarogya' },
-            hospitalClinic: { name: 'AayuLink Digital Clinic' },
+            hospitalClinic: { name: 'MediCare Digital Clinic' },
             diagnosis: { primary: 'Viral Fever' },
             medications: [
               { name: 'Ilabxo', dosage: '200mg', frequency: 'Twice daily' }
@@ -739,7 +739,7 @@ const SimplePatientViewer = () => {
                 <span style={{ color: 'white', fontWeight: 'bold', fontSize: '18px' }}>AL</span>
               </div>
               <div>
-                <Title level={2} style={{ margin: 0, color: 'white', fontWeight: '600' }}>AayuLink</Title>
+                <Title level={2} style={{ margin: 0, color: 'white', fontWeight: '600' }}>MediCare ❤️</Title>
                 <Text style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '14px' }}>
                   Viewing Records For <span style={{ color: 'white', fontWeight: '500' }}>{patient?.name || 'Patient'}</span>
                 </Text>
@@ -2451,7 +2451,7 @@ const SimplePatientViewer = () => {
             label="Hospital / Clinic Name"
             rules={[{ required: true, message: 'Please enter hospital/clinic name' }]}
           >
-            <Input placeholder="e.g., AayuLink Digital Clinic" />
+            <Input placeholder="e.g., MediCare Digital Clinic" />
           </Form.Item>
 
           <Form.Item
@@ -2558,7 +2558,7 @@ const SimplePatientViewer = () => {
                 label="Hospital/Clinic Name"
                 rules={[{ required: true, message: 'Please enter hospital/clinic name' }]}
               >
-                <Input placeholder="e.g., AayuLink Digital Clinic" />
+                <Input placeholder="e.g., MediCare Digital Clinic" />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -2940,7 +2940,7 @@ const SimplePatientViewer = () => {
                 label="Hospital / Clinic Name"
                 rules={[{ required: true, message: 'Please enter hospital/clinic name' }]}
               >
-                <Input placeholder="e.g., AayuLink Digital Clinic" />
+                <Input placeholder="e.g., MediCare Digital Clinic" />
               </Form.Item>
             </Col>
           </Row>

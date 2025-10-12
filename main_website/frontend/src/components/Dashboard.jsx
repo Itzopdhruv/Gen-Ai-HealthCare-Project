@@ -55,7 +55,7 @@ const Dashboard = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <Title level={3} style={{ margin: 0, color: '#1890ff' }}>
-            AayuLink
+            MediCare ❤️
           </Title>
         </div>
         
