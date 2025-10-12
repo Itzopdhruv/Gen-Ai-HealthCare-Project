@@ -14,3 +14,4 @@ services:
         value: 8000
       - key: DEBUG
         value: false
+
