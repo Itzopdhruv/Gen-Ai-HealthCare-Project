@@ -44,3 +44,21 @@ if (typeof window !== 'undefined') {
     window.process = { env: {} };
   }
 }
+
+// Fix for Ant Design globalThis.getRootPrefixCls error
+if (typeof window !== 'undefined' && window.globalThis) {
+  // Add missing Ant Design functions to globalThis
+  if (!window.globalThis.getRootPrefixCls) {
+    window.globalThis.getRootPrefixCls = function() {
+      return 'ant';
+    };
+  }
+  
+  // Add other potential missing Ant Design functions
+  if (!window.globalThis.getPrefixCls) {
+    window.globalThis.getPrefixCls = function(suffixCls, customizePrefixCls) {
+      if (customizePrefixCls) return customizePrefixCls;
+      return suffixCls ? `ant-${suffixCls}` : 'ant';
+    };
+  }
+}

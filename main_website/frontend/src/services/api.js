@@ -2,7 +2,11 @@ import axios from 'axios';
 import axiosConfig from '../axios-config.js';
 
 // Create axios instance with base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://backend-main-website.onrender.com/api';
+console.log('🔗 API Base URL:', API_BASE_URL);
+console.log('🌍 Environment:', import.meta.env.MODE);
+console.log('📦 All env vars:', import.meta.env);
+
 const api = axios.create({
   ...axiosConfig,
   baseURL: API_BASE_URL,
