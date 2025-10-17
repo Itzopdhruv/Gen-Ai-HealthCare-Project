@@ -986,27 +986,12 @@ const PatientDashboard = () => {
                             type="primary" 
                             className="pharm-ai-medication-btn"
                             onClick={() => {
-                              // Try multiple ports for Pharm AI
-                              const ports = [3000, 3001, 3003, 3004, 3005];
-                              let opened = false;
-                              
-                              // Try each port
-                              for (let i = 0; i < ports.length; i++) {
-                                const port = ports[i];
-                                try {
-                                  const newWindow = window.open(`http://localhost:${port}`, '_blank');
-                                  if (newWindow) {
-                                    opened = true;
-                                    console.log(`Trying Pharm AI on port ${port}`);
-                                    break;
-                                  }
-                                } catch (error) {
-                                  console.log(`Port ${port} failed:`, error);
-                                }
-                              }
-                              
-                              if (!opened) {
-                                alert('Pharm AI is not running. Please start it by running:\n\ncd "Pharm Ai"\nnpm run dev\n\nThen try clicking the button again.');
+                              // Open deployed Pharm AI
+                              const newWindow = window.open('https://pharmacy-ai-rho.vercel.app/', '_blank');
+                              if (newWindow) {
+                                console.log('Opening deployed Pharm AI');
+                              } else {
+                                alert('Unable to open Pharm AI. Please check your popup blocker settings.');
                               }
                             }}
                           >

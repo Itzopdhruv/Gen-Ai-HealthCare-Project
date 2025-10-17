@@ -18,10 +18,10 @@ if (result.error) {
   console.log('📦 Parsed values:', result.parsed);
 }
 
-// Set GROQ_API_KEY for testing if not in environment
-if (!process.env.GROQ_API_KEY) {
+// Set GROQ_API_KEY for testing if not in environment (development only)
+if (!process.env.GROQ_API_KEY && process.env.NODE_ENV !== 'production') {
   process.env.GROQ_API_KEY = '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';
-  console.log('🔧 Set GROQ_API_KEY for testing');
+  console.log('🔧 Set GROQ_API_KEY for testing (development mode)');
 }
 
 // Debug: Check if API keys are loaded
@@ -83,10 +83,36 @@ app.use(limiter);
 app.use(logAccess);
 
 // CORS configuration
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3002',
-  credentials: true
-}));
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
+      'https://*.vercel.app',
+      'https://*.netlify.app'
+    ].filter(Boolean);
+    
+    if (allowedOrigins.some(allowedOrigin => 
+      origin === allowedOrigin || 
+      (allowedOrigin.includes('*') && origin.includes(allowedOrigin.replace('*', '')))
+    )) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+};
+
+app.use(cors(corsOptions));
 
 // Logging
 app.use(morgan('combined'));
@@ -143,12 +169,7 @@ app.use('/api/auth/2fa', twoFactorAuthRoutes);
 app.use('/api/admin/security', accessLogsRoutes);
 
 // CORS configuration for file uploads
-app.use('/api/recordings', cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3002',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+app.use('/api/recordings', cors(corsOptions));
 
 // Health check endpoint
 app.get('/', (req, res) => {
