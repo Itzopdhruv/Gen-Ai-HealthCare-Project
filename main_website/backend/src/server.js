@@ -94,13 +94,25 @@ const corsOptions = {
       'http://localhost:3001',
       'http://localhost:3002',
       'https://*.vercel.app',
-      'https://*.netlify.app'
+      'https://*.netlify.app',
+      // Additional Vercel patterns for better compatibility
+      /^https:\/\/.*\.vercel\.app$/,
+      /^https:\/\/.*\.vercel\.dev$/,
+      'https://vercel.app'
     ].filter(Boolean);
     
-    if (allowedOrigins.some(allowedOrigin => 
-      origin === allowedOrigin || 
-      (allowedOrigin.includes('*') && origin.includes(allowedOrigin.replace('*', '')))
-    )) {
+    if (allowedOrigins.some(allowedOrigin => {
+      // Handle regex patterns
+      if (allowedOrigin instanceof RegExp) {
+        return allowedOrigin.test(origin);
+      }
+      // Handle string patterns with wildcards
+      if (typeof allowedOrigin === 'string' && allowedOrigin.includes('*')) {
+        return origin.includes(allowedOrigin.replace('*', ''));
+      }
+      // Handle exact matches
+      return origin === allowedOrigin;
+    })) {
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
@@ -109,7 +121,18 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'Accept', 
+    'Origin',
+    'X-HTTP-Method-Override',
+    'Cache-Control',
+    'Pragma'
+  ],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
 
 app.use(cors(corsOptions));
