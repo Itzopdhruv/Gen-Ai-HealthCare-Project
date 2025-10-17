@@ -987,7 +987,8 @@ const PatientDashboard = () => {
                             className="pharm-ai-medication-btn"
                             onClick={() => {
                               // Open deployed Pharm AI
-                              const newWindow = window.open('https://pharmacy-ai-rho.vercel.app/', '_blank');
+                              const PHARM_AI_URL = import.meta.env.VITE_PHARM_AI_URL || 'https://pharmacy-ai-rho.vercel.app';
+                              const newWindow = window.open(`${PHARM_AI_URL}/`, '_blank');
                               if (newWindow) {
                                 console.log('Opening deployed Pharm AI');
                               } else {

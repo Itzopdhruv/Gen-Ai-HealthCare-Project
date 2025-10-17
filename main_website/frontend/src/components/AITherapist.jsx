@@ -21,6 +21,9 @@ const { Title, Text } = Typography;
 const { TabPane } = Tabs;
 
 const AITherapist = ({ isVisible, onClose, patientData }) => {
+  // AI Therapist API URL - use environment variable or fallback to localhost
+  const AI_THERAPIST_URL = import.meta.env.VITE_AI_THERAPIST_URL || 'http://localhost:8001';
+  
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -350,7 +353,7 @@ const AITherapist = ({ isVisible, onClose, patientData }) => {
           
           try {
             console.log('Sending emotion detection request...');
-            const response = await fetch('http://localhost:8001/detect-emotion', {
+            const response = await fetch(`${AI_THERAPIST_URL}/detect-emotion`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -464,7 +467,7 @@ const AITherapist = ({ isVisible, onClose, patientData }) => {
       setSessionStats(prev => ({ ...prev, moodChanges: prev.moodChanges + 1 }));
       
       // Update backend
-      fetch('http://localhost:8001/update-mood', {
+      fetch(`${AI_THERAPIST_URL}/update-mood`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -502,7 +505,7 @@ const AITherapist = ({ isVisible, onClose, patientData }) => {
       console.log('💬 Sending chat message:', chatData);
       console.log(`🎭 Current mood being sent: "${currentMood}"`);
       
-      const response = await fetch('http://localhost:8001/chat', {
+      const response = await fetch(`${AI_THERAPIST_URL}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -586,7 +589,7 @@ const AITherapist = ({ isVisible, onClose, patientData }) => {
 
     try {
       console.log('💾 Sending request to backend...');
-      const response = await fetch('http://localhost:8001/save-session', {
+      const response = await fetch(`${AI_THERAPIST_URL}/save-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -614,7 +617,7 @@ const AITherapist = ({ isVisible, onClose, patientData }) => {
   // Load session history
   const loadSessionHistory = async () => {
     try {
-      const response = await fetch(`http://localhost:8001/session-history/${patientData?.id || 'anonymous'}`);
+      const response = await fetch(`${AI_THERAPIST_URL}/session-history/${patientData?.id || 'anonymous'}`);
       if (response.ok) {
         const data = await response.json();
         setSessionHistory(data.sessions || []);
