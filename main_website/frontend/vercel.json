@@ -13,10 +13,5 @@
         "VITE_AI_DOCTOR_URL": "https://ai-doctor-genai.onrender.com",
         "VITE_AI_THERAPIST_URL": "https://ai-therapist-genai.onrender.com",
         "VITE_PHARM_AI_URL": "https://pharmacy-ai-rho.vercel.app"
-    },
-    "functions": {
-        "app/api/**/*.js": {
-            "runtime": "nodejs18.x"
-        }
     }
 }
