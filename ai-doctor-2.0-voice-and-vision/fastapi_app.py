@@ -15,6 +15,19 @@ from pydantic import BaseModel
 import uvicorn
 from dotenv import load_dotenv
 
+import gc
+import psutil
+
+# Optimize for Render's free tier
+def optimize_memory():
+    """Optimize memory usage for Render's free tier"""
+    gc.collect()
+    if hasattr(psutil, 'Process'):
+        process = psutil.Process()
+        print(f"Memory usage: {process.memory_info().rss / 1024 / 1024:.2f} MB")
+
+# Call at startup
+optimize_memory()
 # Load environment variables
 load_dotenv()
 
@@ -240,11 +253,11 @@ async def analyze_combined(
 
 # Text-to-speech endpoint
 @app.post("/text-to-speech")
-async def text_to_speech(text: str = Form(...), lang: str = Form("en"), speed: float = Form(1.67)):
+async def text_to_speech(text: str = Form(...), lang: str = Form("en"), speed: float = Form(1.4)):
     """
     Convert text to speech with language and speed support
     Supports: en (English), hi (Hindi)
-    Speed: 1.0 = normal, 1.67 = 67% faster (default), 2.0 = double speed
+    Speed: 1.0 = normal, 1.4 = 40% faster (default), 2.0 = double speed
     """
     try:
         # Generate unique filename for each language to avoid conflicts
@@ -640,24 +653,27 @@ Please provide a comprehensive response that addresses both the image analysis a
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in analysis: {str(e)}")
 
+
 if __name__ == "__main__":
     # Check for required environment variables
-    required_vars = ['GROQ_API_KEY']
-    missing_vars = [var for var in required_vars if not os.getenv(var)]
-    
-    if missing_vars:
-        print(f"❌ Missing required environment variables: {', '.join(missing_vars)}")
-        print("Please set these in your .env file")
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if not groq_api_key:
+        print("❌ GROQ_API_KEY not found in environment variables")
+        print("Please set these in your .env file or Render environment variables")
         exit(1)
     
+    # Get port from environment (Render sets this automatically)
+    port = int(os.getenv("PORT", 8000))
+    host = os.getenv("HOST", "0.0.0.0")
+    
     print("🚀 Starting AI Doctor FastAPI Service...")
-    print("📍 Service will be available at: http://localhost:8000")
-    print("📚 API Documentation: http://localhost:8000/docs")
-    print("🔍 Health Check: http://localhost:8000/health")
+    print(f"📍 Service will be available at: http://{host}:{port}")
+    print("📚 API Documentation: http://{host}:{port}/docs")
+    print("🔍 Health Check: http://{host}:{port}/health")
     
     uvicorn.run(
         "fastapi_app:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
+        host=host,
+        port=port,
+        reload=False  # Set to False for production
     )

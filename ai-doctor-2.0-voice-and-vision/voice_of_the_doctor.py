@@ -29,7 +29,7 @@ import platform
 from pydub import AudioSegment
 from pydub.playback import play
 
-def text_to_speech_with_gtts(input_text, output_filepath, lang="en", speed=1.67):
+def text_to_speech_with_gtts(input_text, output_filepath, lang="en", speed=1.4):
     """
     Convert text to speech using Google TTS with language and speed support
     

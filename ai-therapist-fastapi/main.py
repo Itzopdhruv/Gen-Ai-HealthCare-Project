@@ -88,9 +88,14 @@ def load_emotion_model():
         model_path = "../AI THERAPIST/mobile_net_v2_firstmodel.h5"
         if os.path.exists(model_path):
             from keras.models import load_model
-            emotion_model = load_model(model_path)
-            print("[SUCCESS] Emotion model loaded successfully from AI THERAPIST directory")
-            return True
+            try:
+                emotion_model = load_model(model_path, compile=False)
+                print("[SUCCESS] Emotion model loaded successfully from AI THERAPIST directory")
+                return True
+            except Exception as model_error:
+                print(f"[ERROR] Model loading failed due to compatibility issues: {model_error}")
+                print("[INFO] Using fallback emotion detection (no ML model)")
+                return False
         else:
             print("[ERROR] Model file not found at:", model_path)
             print("[INFO] Using fallback emotion detection (no ML model)")
@@ -99,10 +104,6 @@ def load_emotion_model():
         print(f"[ERROR] Error loading emotion model: {e}")
         print("[INFO] Using fallback emotion detection (no ML model)")
         return False
-
-# Load the model
-load_emotion_model()
-
 def clean_text(text):
     """Clean text by removing emojis and special characters"""
     import re
@@ -172,20 +173,110 @@ def predict_emotion_fallback(face_image):
         brightness = np.mean(gray)
         contrast = np.std(gray)
         
-        # Simple heuristics based on image features
-        if brightness > 140:
+        # Calculate additional features for better emotion detection
+        # Edge detection for facial expressions
+        edges = cv2.Canny(gray, 50, 150)
+        edge_density = np.sum(edges > 0) / (edges.shape[0] * edges.shape[1])
+        
+        # Calculate variance for expression intensity
+        variance = np.var(gray)
+        
+        # Debug information
+        print(f"Fallback analysis - Brightness: {brightness:.2f}, Contrast: {contrast:.2f}, Edge density: {edge_density:.3f}, Variance: {variance:.2f}")
+        
+        # Improved heuristics based on image features
+        if brightness > 120 and edge_density > 0.1:
             return "Happy", 0.7
-        elif brightness < 80:
+        elif brightness < 90 and edge_density > 0.08:
             return "Sad", 0.6
-        elif contrast > 60:
+        elif contrast > 50 and variance > 800:
             return "Surprise", 0.5
-        elif contrast < 30:
+        elif edge_density > 0.12 and variance > 1000:
+            return "Angry", 0.6
+        elif brightness > 100 and contrast < 40:
+            return "Calm", 0.6
+        elif contrast < 25 and edge_density < 0.05:
             return "Neutral", 0.6
         else:
-            return "Neutral", 0.5
+            # More nuanced fallback based on multiple factors
+            if brightness > 110:
+                return "Happy", 0.5
+            elif brightness < 100:
+                return "Sad", 0.5
+            else:
+                return "Neutral", 0.5
         
     except Exception as e:
         print(f"Fallback prediction failed: {e}")
+        return "Neutral", 0.5
+    """Detect emotion from a single image using face detection + emotion prediction"""
+    try:
+        # Decode base64 image
+        image_bytes = base64.b64decode(image_data)
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if image is None:
+            return "Neutral", 0.3
+        
+        # Convert to grayscale for face detection
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
+        # Detect faces
+        if face_detector is None:
+            return "Neutral", 0.3
+            
+        faces = face_detector.detectMultiScale(
+            gray, 
+            scaleFactor=1.1,   # Original sensitivity
+            minNeighbors=3,    # Original strictness
+            minSize=(30, 30),  # Original minimum size
+            maxSize=(300, 300), # Original maximum size
+            flags=cv2.CASCADE_SCALE_IMAGE
+        )
+        
+        if len(faces) == 0:
+            return "No Face", 0.0
+        
+        # Get the largest face
+        largest_face = max(faces, key=lambda rect: rect[2] * rect[3])
+        x, y, w, h = largest_face
+        
+        # Validate face size - should be reasonable for a full face
+        if w < 20 or h < 20:
+            return "No Face", 0.0
+        
+        # Expand ROI for better emotion detection
+        def expand_roi(x, y, w, h, scale_w, scale_h, img_shape):
+            new_x = max(int(x - w * (scale_w - 1) / 2), 0)
+            new_y = max(int(y - h * (scale_h - 1) / 2), 0)
+            new_w = min(int(w * scale_w), img_shape[1] - new_x)
+            new_h = min(int(h * scale_h), img_shape[0] - new_y)
+            return new_x, new_y, new_w, new_h
+        
+        scale_w = 1.3  # Original horizontal expansion
+        scale_h = 1.5  # Original vertical expansion
+        new_x, new_y, new_w, new_h = expand_roi(x, y, w, h, scale_w, scale_h, image.shape)
+        
+        # Extract face region
+        face_roi = image[new_y:new_y+new_h, new_x:new_x+new_w]
+        # Ensure face ROI is C-contiguous before processing
+        face_roi = np.ascontiguousarray(face_roi)
+        
+        # Predict emotion
+        emotion, confidence = predict_emotion(face_roi)
+        
+        # Convert Surprise to Neutral (as in original)
+        if emotion == "Surprise":
+            emotion = "Neutral"
+            
+        print(f"Face detected: {w}x{h} at ({x},{y}) - Emotion: {emotion} ({confidence:.2f})")
+        
+        return emotion, confidence
+        
+    except Exception as e:
+        print(f"❌ ERROR IN EMOTION DETECTION: {e}")
+        print("=" * 50)
         return "Neutral", 0.5
 
 def detect_emotion_from_image(image_data):
@@ -240,6 +331,8 @@ def detect_emotion_from_image(image_data):
         
         # Extract face region
         face_roi = image[new_y:new_y+new_h, new_x:new_x+new_w]
+        # Ensure face ROI is C-contiguous before processing
+        face_roi = np.ascontiguousarray(face_roi)
         
         # Predict emotion
         emotion, confidence = predict_emotion(face_roi)
@@ -256,7 +349,6 @@ def detect_emotion_from_image(image_data):
         print(f"❌ ERROR IN EMOTION DETECTION: {e}")
         print("=" * 50)
         return "Neutral", 0.5
-
 def generate_therapist_response(message, emotion, session_id):
     """Generate AI therapist response using Groq"""
     print("=" * 80)
