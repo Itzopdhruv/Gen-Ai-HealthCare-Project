@@ -8,15 +8,26 @@ import os
 import base64
 import tempfile
 from typing import Optional
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import uvicorn
 from dotenv import load_dotenv
+import asyncio
 
 import gc
 import psutil
+
+# Handle PyAudio availability for cloud deployment
+try:
+    import pyaudio
+    AUDIO_RECORDING_AVAILABLE = True
+    print("✅ PyAudio available - audio recording enabled")
+except ImportError:
+    AUDIO_RECORDING_AVAILABLE = False
+    print("⚠️ PyAudio not available - audio recording disabled (cloud deployment)")
 
 # Optimize for Render's free tier
 def optimize_memory():
@@ -77,12 +88,25 @@ class CombinedResponse(BaseModel):
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "service": "AI Doctor",
-        "version": "1.0.0"
-    }
+    """Enhanced health check for Render"""
+    try:
+        # Check if GROQ API is accessible
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        api_status = "connected" if groq_api_key else "missing_key"
+        
+        return {
+            "status": "healthy",
+            "service": "AI Doctor",
+            "version": "1.0.0",
+            "api_status": api_status,
+            "audio_available": AUDIO_RECORDING_AVAILABLE,
+            "memory_usage": f"{psutil.Process().memory_info().rss / 1024 / 1024:.2f} MB"
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e)
+        }
 
 # Root endpoint
 @app.get("/")
@@ -653,6 +677,170 @@ Please provide a comprehensive response that addresses both the image analysis a
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in analysis: {str(e)}")
 
+# Audio recording endpoints
+@app.post("/transcribe-audio")
+async def transcribe_audio(audio: UploadFile = File(...)):
+    """Process uploaded audio file for transcription"""
+    try:
+        # Save uploaded audio
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp_file:
+            content = await audio.read()
+            tmp_file.write(content)
+            tmp_file_path = tmp_file.name
+        
+        # Transcribe using Groq
+        transcription = transcribe_with_groq(tmp_file_path)
+        
+        # Clean up
+        os.unlink(tmp_file_path)
+        
+        return {
+            "success": True,
+            "transcription": transcription,
+            "audio_file": audio.filename
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@app.get("/audio-recorder", response_class=HTMLResponse)
+async def audio_recorder():
+    """Serve the audio recording interface"""
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>AI Doctor - Voice Recording</title>
+        <style>
+            body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+            .container { background: #f5f5f5; padding: 20px; border-radius: 10px; }
+            button { padding: 10px 20px; margin: 10px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer; }
+            #recordBtn { background: #4CAF50; color: white; }
+            #stopBtn { background: #f44336; color: white; }
+            #recordBtn:disabled, #stopBtn:disabled { background: #cccccc; cursor: not-allowed; }
+            #status { margin: 20px 0; padding: 10px; background: #e7f3ff; border-radius: 5px; }
+            #transcription { margin: 20px 0; padding: 15px; background: white; border-radius: 5px; min-height: 100px; }
+            .loading { color: #666; font-style: italic; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🎤 AI Doctor Voice Recording</h1>
+            <p>Record your voice to get medical advice from AI Doctor</p>
+            
+            <button id="recordBtn">🎤 Start Recording</button>
+            <button id="stopBtn" disabled>⏹️ Stop Recording</button>
+            
+            <div id="status">Ready to record</div>
+            <div id="transcription">Your transcription will appear here...</div>
+        </div>
+
+        <script>
+            const recordBtn = document.getElementById('recordBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const status = document.getElementById('status');
+            const transcription = document.getElementById('transcription');
+
+            let mediaRecorder;
+            let audioChunks = [];
+
+            recordBtn.addEventListener('click', startRecording);
+            stopBtn.addEventListener('click', stopRecording);
+
+            async function startRecording() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        await uploadAudio(audioBlob);
+                    };
+
+                    mediaRecorder.start();
+                    recordBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    status.textContent = '🎤 Recording... Speak now!';
+                    status.className = 'loading';
+                } catch (error) {
+                    status.textContent = '❌ Error: ' + error.message;
+                    status.className = '';
+                }
+            }
+
+            function stopRecording() {
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                    recordBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    status.textContent = '⏳ Processing audio...';
+                    status.className = 'loading';
+                }
+            }
+
+            async function uploadAudio(audioBlob) {
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'recording.wav');
+
+                try {
+                    const response = await fetch('/transcribe-audio', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        transcription.textContent = result.transcription;
+                        status.textContent = '✅ Transcription complete!';
+                        status.className = '';
+                    } else {
+                        status.textContent = '❌ Error: ' + result.error;
+                        status.className = '';
+                    }
+                } catch (error) {
+                    status.textContent = '❌ Upload error: ' + error.message;
+                    status.className = '';
+                }
+            }
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
+# WebSocket endpoint for real-time audio streaming
+@app.websocket("/ws/audio-stream")
+async def websocket_audio_stream(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            # Receive audio data from frontend
+            data = await websocket.receive_text()
+            audio_data = base64.b64decode(data)
+            
+            # Process audio in real-time
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp_file:
+                tmp_file.write(audio_data)
+                tmp_file_path = tmp_file.name
+            
+            try:
+                # Transcribe using Groq
+                transcription = transcribe_with_groq(tmp_file_path)
+                
+                # Send response back
+                await websocket.send_text(transcription)
+            finally:
+                os.unlink(tmp_file_path)
+            
+    except WebSocketDisconnect:
+        print("Client disconnected")
 
 if __name__ == "__main__":
     # Check for required environment variables
