@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { uploadBase64ToCloudinary } from '../services/cloudinaryService.js';
 
-const AI_DOCTOR_API_URL = process.env.AI_DOCTOR_API_URL || 'http://localhost:8000';
+const AI_DOCTOR_API_URL = process.env.AI_DOCTOR_API_URL || 'https://ai-doctor-genai.onrender.com';
 
 export const analyzeMedicalInput = async (req, res) => {
   try {

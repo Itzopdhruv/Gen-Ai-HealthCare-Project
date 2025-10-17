@@ -4,7 +4,7 @@ import { transactionService } from '@/lib/database'
 // GET /api/transactions - Get all transactions with optional medicine filter
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
+    const { searchParams } = request.nextUrl
     const medicineId = searchParams.get('medicineId') || undefined
 
     const transactions = await transactionService.getAll(medicineId)

@@ -4,7 +4,7 @@ import { medicineService, transactionService } from '@/lib/database'
 // GET /api/analytics - Get comprehensive analytics data
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
+    const { searchParams } = request.nextUrl
     const period = searchParams.get('period') || '30d'
     
     // Get all medicines and transactions

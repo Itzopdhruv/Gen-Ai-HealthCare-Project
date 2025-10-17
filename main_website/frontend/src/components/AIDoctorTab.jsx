@@ -600,7 +600,7 @@ const AIDoctorTab = ({ onClose }) => {
         formData.append('lang', language); // Pass language code
         formData.append('speed', '1.67'); // Pass speed (67% faster)
         
-        const response = await fetch('http://localhost:8000/text-to-speech', {
+        const response = await fetch('https://ai-doctor-genai.onrender.com/text-to-speech', {
           method: 'POST',
           body: formData,
         });
@@ -611,7 +611,7 @@ const AIDoctorTab = ({ onClose }) => {
           
           if (data.success && data.audio_file) {
             // Play the audio file
-            const audioUrl = `http://localhost:8000/audio/${data.audio_file.split('/').pop()}`;
+            const audioUrl = `https://ai-doctor-genai.onrender.com/audio/${data.audio_file.split('/').pop()}`;
             console.log(`🎵 Playing audio: ${audioUrl}`);
             const audio = new Audio(audioUrl);
             audioRef.current = audio;
