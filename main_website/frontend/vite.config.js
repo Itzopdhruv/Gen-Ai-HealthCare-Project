@@ -16,5 +16,38 @@ export default defineConfig({
   },
   define: {
     global: 'globalThis',
+    'process.env': 'process.env',
+  },
+  build: {
+    rollupOptions: {
+      external: [],
+      output: {
+        globals: {
+          'global': 'globalThis'
+        }
+      }
+    },
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
+    }
+  },
+  optimizeDeps: {
+    include: ['axios'],
+    esbuildOptions: {
+      define: {
+        global: 'globalThis'
+      }
+    }
+  },
+  esbuild: {
+    define: {
+      global: 'globalThis'
+    }
+  },
+  resolve: {
+    alias: {
+      global: 'globalThis'
+    }
   }
 })

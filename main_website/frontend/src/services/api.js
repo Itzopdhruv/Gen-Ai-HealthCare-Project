@@ -1,13 +1,11 @@
 import axios from 'axios';
+import axiosConfig from '../axios-config.js';
 
 // Create axios instance with base URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 const api = axios.create({
+  ...axiosConfig,
   baseURL: API_BASE_URL,
-  timeout: 120000, // Allow up to 120s for AI/report requests
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Add request interceptor to include auth token
