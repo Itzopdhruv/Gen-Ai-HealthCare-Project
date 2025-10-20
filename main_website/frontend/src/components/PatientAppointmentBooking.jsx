@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './PatientAppointmentBooking.css';
 import VideoCallButton from './VideoCallButton';
+import api from '../services/api';
 
 const PatientAppointmentBooking = () => {
   const [specialties, setSpecialties] = useState([]);
@@ -58,9 +59,8 @@ const PatientAppointmentBooking = () => {
 
   const loadSpecialties = async () => {
     try {
-      const response = await fetch('/api/appointments/specialties');
-      const data = await response.json();
-      setSpecialties(Array.isArray(data.data) ? data.data : []);
+      const response = await api.get('/appointments/specialties');
+      setSpecialties(Array.isArray(response.data.data) ? response.data.data : []);
     } catch (error) {
       console.error('Error loading specialties:', error);
     }
@@ -68,9 +68,10 @@ const PatientAppointmentBooking = () => {
 
   const loadDoctorsBySpecialty = async (specialtyId) => {
     try {
-      const response = await fetch(`/api/appointments/doctors/specialty/${specialtyId}?date=${selectedDate || new Date().toISOString().split('T')[0]}`);
-      const data = await response.json();
-      setDoctors(data.data);
+      const response = await api.get(`/appointments/doctors/specialty/${specialtyId}`, {
+        params: { date: selectedDate || new Date().toISOString().split('T')[0] }
+      });
+      setDoctors(response.data.data);
     } catch (error) {
       console.error('Error loading doctors:', error);
     }
@@ -78,9 +79,8 @@ const PatientAppointmentBooking = () => {
 
   const loadAvailableSlots = async (doctorId, date) => {
     try {
-      const response = await fetch(`/api/appointments/doctors/${doctorId}/slots?date=${date}`);
-      const data = await response.json();
-      setAvailableSlots(data.data);
+      const response = await api.get(`/appointments/doctors/${doctorId}/slots`, { params: { date } });
+      setAvailableSlots(response.data.data);
     } catch (error) {
       console.error('Error loading slots:', error);
     }
@@ -208,40 +208,23 @@ const PatientAppointmentBooking = () => {
       
       // First lock the slot
       console.log(`🔒 Attempting to lock slot: ${selectedSlot}`);
-      const lockResponse = await fetch(`/api/appointments/slots/${selectedSlot}/lock`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ abhaId: localStorage.getItem('abhaId') })
-      });
+      const lockResponse = await api.post(`/appointments/slots/${selectedSlot}/lock`, { abhaId: localStorage.getItem('abhaId') });
 
       console.log('🔒 Lock response status:', lockResponse.status);
       
-      if (!lockResponse.ok) {
-        const lockError = await lockResponse.json();
-        console.error('❌ Lock error:', lockError);
-        alert(lockError.message || 'Failed to lock slot. Please try again.');
-        return;
-      }
-      
-      const lockData = await lockResponse.json();
+      const lockData = lockResponse.data;
       console.log('✅ Slot locked successfully:', lockData);
 
       // Then book the appointment
-      const response = await fetch('/api/appointments/book', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          abhaId: localStorage.getItem('abhaId'), // Use ABHA ID as primary identifier
-          doctorId: selectedDoctor,
-          slotId: selectedSlot,
-          reasonForVisit: bookingData.reason.trim(),
-          patientName: patientData.name || 'RAVI YADAV', // Use actual patient's name
-          patientPhone: patientData.phone || '+91-9876543210' // Use actual patient's phone
-        })
+      const response = await api.post('/appointments/book', {
+        abhaId: localStorage.getItem('abhaId'),
+        doctorId: selectedDoctor,
+        slotId: selectedSlot,
+        reasonForVisit: bookingData.reason.trim(),
+        patientName: patientData.name || 'RAVI YADAV',
+        patientPhone: patientData.phone || '+91-9876543210'
       });
-
-      if (response.ok) {
-        const data = await response.json();
+      if (response.data && response.data.success !== false) {
         alert('Appointment booked successfully!');
         
         // Reset form
@@ -258,8 +241,7 @@ const PatientAppointmentBooking = () => {
         // Reload appointments
         loadUserAppointments();
       } else {
-        const errorData = await response.json();
-        alert(errorData.message || 'Failed to book appointment. Please try again.');
+        alert('Failed to book appointment. Please try again.');
       }
     } catch (error) {
       console.error('Error booking appointment:', error);
