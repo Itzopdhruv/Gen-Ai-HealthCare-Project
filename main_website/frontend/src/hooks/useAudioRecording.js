@@ -353,8 +353,8 @@ export const useAudioRecording = () => {
       formData.append('duration', recordingDuration.toString());
 
       const endpoint = userType === 'patient' 
-        ? `/api/recordings/${recordingId}/patient`
-        : `/api/recordings/${recordingId}/doctor`;
+        ? `/recordings/${recordingId}/patient`
+        : `/recordings/${recordingId}/doctor`;
 
       console.log('📤 [UPLOAD] Uploading to:', endpoint);
       console.log('📤 [UPLOAD] Blob size:', recordingBlob.size, 'bytes');
@@ -362,22 +362,18 @@ export const useAudioRecording = () => {
       console.log('📤 [UPLOAD] Recording ID:', recordingId);
       console.log('📤 [UPLOAD] User type:', userType);
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        body: formData
-      });
+      const response = await api.post(endpoint, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
 
-      console.log('📤 [UPLOAD] Response status:', response.status);
+      console.log('📤 [UPLOAD] Response status:', response.status || 200);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        const errorMsg = errorData.message || 'Upload failed';
+      if (!response.data || response.data.success === false) {
+        const errorMsg = response.data?.message || 'Upload failed';
         console.error('❌ [UPLOAD] Server error:', errorMsg);
         setError(`Upload failed: ${errorMsg}`);
         return { error: errorMsg, success: false };
       }
 
-      const result = await response.json();
+      const result = response.data;
       setUploadProgress(100);
       console.log('📤 [UPLOAD] Recording uploaded successfully:', result);
 
@@ -398,31 +394,25 @@ export const useAudioRecording = () => {
       setUploadProgress(0);
 
       // First, process the recordings (merge audio)
-      const processResponse = await fetch(`/api/recordings/${recordingId}/process`, {
-        method: 'POST'
-      });
+      const processResponse = await api.post(`/recordings/${recordingId}/process`);
 
-      if (!processResponse.ok) {
-        const errorData = await processResponse.json();
-        throw new Error(errorData.message || 'Processing failed');
+      if (!processResponse.data || processResponse.data.success === false) {
+        throw new Error(processResponse.data?.message || 'Processing failed');
       }
 
       setUploadProgress(50);
 
       // Then, generate AI summary
-      const summaryResponse = await fetch(`/api/recordings/${recordingId}/generate-summary`, {
-        method: 'POST'
-      });
+      const summaryResponse = await api.post(`/recordings/${recordingId}/generate-summary`);
 
-      if (!summaryResponse.ok) {
-        const errorData = await summaryResponse.json();
-        throw new Error(errorData.message || 'Summary generation failed');
+      if (!summaryResponse.data || summaryResponse.data.success === false) {
+        throw new Error(summaryResponse.data?.message || 'Summary generation failed');
       }
 
       setUploadProgress(100);
       console.log('🤖 Recording processed and summary generated');
 
-      return await summaryResponse.json();
+      return summaryResponse.data;
 
     } catch (error) {
       console.error('❌ Error processing recordings:', error);

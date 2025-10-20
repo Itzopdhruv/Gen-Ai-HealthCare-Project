@@ -90,18 +90,11 @@ export default function NationalHealthPulse() {
       
       Format as JSON array with exactly 3 cards. Use different cities like Mumbai, Delhi, Bangalore, Chennai, Kolkata, Hyderabad, Pune, Ahmedabad, Jaipur, Kochi, Indore, Bhopal. Each card must have a different city.`;
       
-      const response = await fetch('/api/health/gemini-test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          message: prompt,
-          model: 'gemini-2.5-flash'
-        })
+      const response = await api.post('/health/gemini-test', { 
+        message: prompt,
+        model: 'gemini-2.5-flash'
       });
-      
-      const data = await response.json();
+      const data = response.data;
       
       if (data.success && data.response) {
         try {

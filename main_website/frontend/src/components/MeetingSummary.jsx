@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './MeetingSummary.css';
+import api from '../services/api';
 
 const MeetingSummary = ({ 
   recordingId, 
@@ -27,22 +28,11 @@ const MeetingSummary = ({
       const generateController = new AbortController();
       const generateTimeout = setTimeout(() => generateController.abort(), 60000); // 60 second timeout
       
-      const generateResponse = await fetch(`/api/recordings/${recordingId}/generate-summary`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: generateController.signal
-      });
+      const generateResponse = await api.post(`/recordings/${recordingId}/generate-summary`, {}, { signal: generateController.signal });
       
       clearTimeout(generateTimeout);
       
-      if (!generateResponse.ok) {
-        const errorData = await generateResponse.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to generate summary (${generateResponse.status})`);
-      }
-      
-      const generateData = await generateResponse.json();
+      const generateData = generateResponse.data;
       console.log('🤖 [FRONTEND] Summary generation response:', generateData);
       
       // Check if summary generation was successful
@@ -55,19 +45,12 @@ const MeetingSummary = ({
       const fetchController = new AbortController();
       const fetchTimeout = setTimeout(() => fetchController.abort(), 10000); // 10 second timeout
       
-      const response = await fetch(`/api/recordings/${recordingId}/summary`, {
-        signal: fetchController.signal
-      });
+      const response = await api.get(`/recordings/${recordingId}/summary`, { signal: fetchController.signal });
       
       clearTimeout(fetchTimeout);
-      console.log('🔍 [FRONTEND] Summary fetch response status:', response.status);
+      console.log('🔍 [FRONTEND] Summary fetch response status:', response.status || 200);
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to fetch summary (${response.status})`);
-      }
-
-      const data = await response.json();
+      const data = response.data;
       console.log('🔍 [FRONTEND] Summary fetch response data:', data);
       
       // Check if summary generation failed
@@ -131,17 +114,9 @@ const MeetingSummary = ({
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/recordings/${recordingId}/generate-summary`, {
-        method: 'POST'
-      });
-
-      console.log('🤖 [FRONTEND] Summary generation response status:', response.status);
-
-      if (!response.ok) {
-        throw new Error('Failed to generate summary');
-      }
-
-      const data = await response.json();
+      const response = await api.post(`/recordings/${recordingId}/generate-summary`);
+      console.log('🤖 [FRONTEND] Summary generation response status:', response.status || 200);
+      const data = response.data;
       console.log('🤖 [FRONTEND] Summary generation response data:', data);
       
       // Check for populate errors in generated summary

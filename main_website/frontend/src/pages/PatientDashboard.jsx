@@ -245,21 +245,14 @@ const PatientDashboard = () => {
       formData.append('profileImage', file);
       formData.append('abhaId', user?.abhaId);
       
-      const response = await fetch('/api/patient/upload-profile-image', {
-        method: 'POST',
-        body: formData,
+      const result = await api.post('/patient/upload-profile-image', formData, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'multipart/form-data'
         }
       });
-      
-      if (response.ok) {
-        const result = await response.json();
-        setProfileImage(result.data.imageUrl);
-        message.success('Profile image updated successfully!');
-      } else {
-        throw new Error('Upload failed');
-      }
+      setProfileImage(result.data.data.imageUrl);
+      message.success('Profile image updated successfully!');
     } catch (error) {
       console.error('Error uploading image:', error);
       message.error('Failed to upload image. Please try again.');
@@ -486,8 +479,8 @@ const PatientDashboard = () => {
   useEffect(() => {
     const checkAIDoctor = async () => {
       try {
-        const response = await fetch('/api/ai-doctor/health');
-        if (response.ok) {
+        const response = await api.get('/ai-doctor/health');
+        if (response.status === 200) {
           setAiDoctorReady(true);
         }
       } catch (error) {

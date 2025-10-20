@@ -371,14 +371,8 @@ const VideoCallButton = ({
   // Force process recordings (even if only one is available)
   const forceProcessRecordings = async (recordingId) => {
     try {
-      const response = await fetch(`/api/recordings/${recordingId}/force-process`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      const data = await response.json();
+      const response = await api.post(`/recordings/${recordingId}/force-process`);
+      const data = response.data;
       if (data.success) {
         console.log('✅ Recordings force processed successfully');
         // Generate AI summary
@@ -482,12 +476,8 @@ const VideoCallButton = ({
         formData.append('audio', currentBlob, `recording-${Date.now()}.webm`);
         
         // Upload directly using fetch instead of the hook's uploadRecording
-        const uploadResponse = await fetch(`/api/recordings/${recordingId}/${userType}`, {
-          method: 'POST',
-          body: formData
-        });
-        
-        const uploadResult = await uploadResponse.json();
+        const uploadResponse = await api.post(`/recordings/${recordingId}/${userType}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const uploadResult = uploadResponse.data;
         console.log('📤 Upload result:', uploadResult);
         
         // Check if upload was successful
