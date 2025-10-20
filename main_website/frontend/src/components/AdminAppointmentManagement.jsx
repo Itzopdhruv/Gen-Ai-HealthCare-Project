@@ -370,21 +370,11 @@ const AdminAppointmentManagement = () => {
     }
 
     try {
-      const response = await fetch('/api/admin/appointments/doctors/cleanup', {
-        method: 'POST'
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Cleanup successful:', data);
-        alert(`✅ ${data.message}\n\nDeleted ${data.deletedCount} orphaned doctors.`);
-        // Reload doctors to reflect changes
-        loadInitialData();
-      } else {
-        const errorData = await response.json();
-        console.error('Cleanup failed:', errorData);
-        alert(`❌ Error: ${errorData.message || 'Failed to cleanup orphaned doctors'}`);
-      }
+      const response = await api.post('/admin/appointments/doctors/cleanup');
+      console.log('Cleanup successful:', response.data);
+      alert(`✅ ${response.data.message}\n\nDeleted ${response.data.deletedCount} orphaned doctors.`);
+      // Reload doctors to reflect changes
+      loadInitialData();
     } catch (error) {
       console.error('Error cleaning up orphaned doctors:', error);
       alert('❌ Failed to cleanup orphaned doctors. Please try again.');
@@ -394,29 +384,18 @@ const AdminAppointmentManagement = () => {
   const handleCreateDoctor = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/admin/appointments/doctors', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newDoctor)
+      const response = await api.post('/admin/appointments/doctors', newDoctor);
+      setDoctors([...doctors, response.data.data]);
+      setNewDoctor({
+        name: '',
+        email: '',
+        phone: '',
+        specialty: '',
+        licenseNumber: '',
+        consultationFee: 0
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setDoctors([...doctors, data.data]);
-        setNewDoctor({
-          name: '',
-          email: '',
-          phone: '',
-          specialty: '',
-          licenseNumber: '',
-          consultationFee: 0
-        });
-        setShowDoctorDialog(false);
-        alert('Doctor created successfully!');
-      } else {
-        const errorData = await response.json();
-        alert(`Error: ${errorData.message || 'Failed to create doctor'}`);
-      }
+      setShowDoctorDialog(false);
+      alert('Doctor created successfully!');
     } catch (error) {
       console.error('Error creating doctor:', error);
       alert('Failed to create doctor. Please try again.');
