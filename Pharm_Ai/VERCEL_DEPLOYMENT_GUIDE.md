@@ -228,3 +228,4 @@ If you encounter issues:
 **Your Pharm-Ai application is ready for Vercel deployment! 🚀**
 
 The application will be available at: `https://your-app-name.vercel.app`
+

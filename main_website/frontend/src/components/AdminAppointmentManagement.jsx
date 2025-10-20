@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './AdminAppointmentManagement.css';
 import VideoCallButton from './VideoCallButton';
+import api from '../services/api';
 
 const AdminAppointmentManagement = () => {
   const [specialties, setSpecialties] = useState([]);
@@ -89,13 +90,9 @@ const AdminAppointmentManagement = () => {
 
   const loadAppointments = async () => {
     try {
-      const appointmentsRes = await fetch('/api/admin/appointments/appointments');
-      if (!appointmentsRes.ok) {
-        throw new Error(`Appointments API failed: ${appointmentsRes.status}`);
-      }
-      const appointmentsData = await appointmentsRes.json();
-      setAppointments(appointmentsData.data || []);
-      console.log('✅ Appointments refreshed:', appointmentsData.data?.length || 0);
+      const appointmentsRes = await api.get('/admin/appointments/appointments');
+      setAppointments(appointmentsRes.data.data || []);
+      console.log('✅ Appointments refreshed:', appointmentsRes.data.data?.length || 0);
     } catch (error) {
       console.error('Error loading appointments:', error);
     }
@@ -103,21 +100,10 @@ const AdminAppointmentManagement = () => {
 
   const updateAppointmentStatus = async (appointmentId, status) => {
     try {
-      const response = await fetch(`/api/admin/appointments/update-status/${appointmentId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status })
-      });
-
-      if (response.ok) {
-        console.log(`✅ Appointment ${appointmentId} status updated to ${status}`);
-        // Refresh appointments to show updated status
-        loadAppointments();
-      } else {
-        console.error('Failed to update appointment status');
-      }
+      const response = await api.put(`/admin/appointments/appointments/${appointmentId}/status`, { status });
+      console.log(`✅ Appointment ${appointmentId} status updated to ${status}`);
+      // Refresh appointments to show updated status
+      loadAppointments();
     } catch (error) {
       console.error('Error updating appointment status:', error);
     }
@@ -126,30 +112,14 @@ const AdminAppointmentManagement = () => {
   const loadInitialData = async () => {
     try {
       const [specialtiesRes, doctorsRes, appointmentsRes] = await Promise.all([
-        fetch('/api/admin/appointments/specialties'),
-        fetch('/api/admin/appointments/doctors'),
-        fetch('/api/admin/appointments/appointments')
+        api.get('/admin/appointments/specialties'),
+        api.get('/admin/appointments/doctors'),
+        api.get('/admin/appointments/appointments')
       ]);
 
-      if (!specialtiesRes.ok) {
-        throw new Error(`Specialties API failed: ${specialtiesRes.status}`);
-      }
-      if (!doctorsRes.ok) {
-        throw new Error(`Doctors API failed: ${doctorsRes.status}`);
-      }
-      if (!appointmentsRes.ok) {
-        throw new Error(`Appointments API failed: ${appointmentsRes.status}`);
-      }
-
-      const [specialtiesData, doctorsData, appointmentsData] = await Promise.all([
-        specialtiesRes.json(),
-        doctorsRes.json(),
-        appointmentsRes.json()
-      ]);
-
-      setSpecialties(specialtiesData.data || []);
-      setDoctors(doctorsData.data || []);
-      setAppointments(appointmentsData.data || []);
+      setSpecialties(specialtiesRes.data.data || []);
+      setDoctors(doctorsRes.data.data || []);
+      setAppointments(appointmentsRes.data.data || []);
     } catch (error) {
       console.error('Error loading initial data:', error);
       // Set empty arrays to prevent undefined errors
@@ -172,22 +142,11 @@ const AdminAppointmentManagement = () => {
   const handleCreateSpecialty = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/admin/appointments/specialties', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSpecialty)
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSpecialties([...specialties, data.data]);
-        setNewSpecialty({ name: '', description: '' });
-        setShowSpecialtyDialog(false);
-        alert('✅ Specialty created successfully!');
-      } else {
-        const errorData = await response.json();
-        alert(`❌ Error: ${errorData.message || 'Failed to create specialty'}`);
-      }
+      const response = await api.post('/admin/appointments/specialties', newSpecialty);
+      setSpecialties([...specialties, response.data.data]);
+      setNewSpecialty({ name: '', description: '' });
+      setShowSpecialtyDialog(false);
+      alert('✅ Specialty created successfully!');
     } catch (error) {
       console.error('Error creating specialty:', error);
       alert('❌ Failed to create specialty. Please try again.');

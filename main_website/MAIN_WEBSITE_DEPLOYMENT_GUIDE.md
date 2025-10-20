@@ -280,3 +280,4 @@ git push origin main
 - **Pharm-Ai**: https://pharmacy-ai-rho.vercel.app ✅
 - **AI Doctor**: https://ai-doctor-genai.onrender.com ✅
 - **Main Website**: Ready for deployment 🚀
+

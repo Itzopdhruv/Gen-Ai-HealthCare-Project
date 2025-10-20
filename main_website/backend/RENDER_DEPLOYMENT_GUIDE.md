@@ -243,3 +243,4 @@ If you encounter issues:
 - ✅ **AI Doctor**: https://ai-doctor-genai.onrender.com
 - ✅ **Pharm-Ai**: https://pharmacy-ai-rho.vercel.app
 - 🚀 **AayuLink Backend**: Ready for deployment
+

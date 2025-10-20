@@ -30,3 +30,4 @@ services:
         value: https://ai-doctor-genai.onrender.com
       - key: PHARM_AI_URL
         value: https://pharmacy-ai-rho.vercel.app
+
