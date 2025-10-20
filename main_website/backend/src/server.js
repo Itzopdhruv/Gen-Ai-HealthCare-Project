@@ -75,14 +75,7 @@ const app = express();
 app.use(helmet());
 app.use(compression());
 
-// Rate limiting - Dynamic rate limiter
-const limiter = initializeRateLimiter();
-app.use(limiter);
-
-// Apply access logging middleware to all routes
-app.use(logAccess);
-
-// CORS configuration
+// CORS configuration (must run BEFORE rate limiter and logging)
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, Postman, etc.)
@@ -90,12 +83,12 @@ const corsOptions = {
     
     const allowedOrigins = [
       process.env.FRONTEND_URL,
+      process.env.FRONTEND_URL_2,
+      process.env.FRONTEND_URL_3,
       'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:3002',
-      'https://*.vercel.app',
-      'https://*.netlify.app',
-      // Additional Vercel patterns for better compatibility
+      // Broadly allow Vercel preview/production domains
       /^https:\/\/.*\.vercel\.app$/,
       /^https:\/\/.*\.vercel\.dev$/,
       'https://vercel.app'
@@ -135,7 +128,16 @@ const corsOptions = {
   optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
 
+// Enable CORS and preflight for all routes early
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// Rate limiting - Dynamic rate limiter (after CORS so preflights aren't blocked)
+const limiter = initializeRateLimiter();
+app.use(limiter);
+
+// Apply access logging middleware to all routes
+app.use(logAccess);
 
 // Logging
 app.use(morgan('combined'));
