@@ -131,9 +131,8 @@ const AdminAppointmentManagement = () => {
 
   const loadDoctorSlots = async (doctorId, date) => {
     try {
-      const response = await fetch(`/api/admin/appointments/doctors/${doctorId}/slots?date=${date}`);
-      const data = await response.json();
-      setAvailabilitySlots(data.data);
+      const response = await api.get(`/admin/appointments/doctors/${doctorId}/slots`, { params: { date } });
+      setAvailabilitySlots(response.data.data);
     } catch (error) {
       console.error('Error loading doctor slots:', error);
     }
@@ -174,32 +173,17 @@ const AdminAppointmentManagement = () => {
     if (!editingSpecialty) return;
 
     try {
-      console.log('Sending PUT request to:', `/api/admin/appointments/specialties/${editingSpecialty._id}`);
-      const response = await fetch(`/api/admin/appointments/specialties/${editingSpecialty._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: editFormData.name.trim(),
-          description: editFormData.description.trim()
-        })
+      const response = await api.put(`/admin/appointments/specialties/${editingSpecialty._id}`, {
+        name: editFormData.name.trim(),
+        description: editFormData.description.trim()
       });
-
-      console.log('Response status:', response.status);
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Update successful:', data);
-        setSpecialties(specialties.map(s => 
-          s._id === editingSpecialty._id ? data.data : s
-        ));
-        setShowEditDialog(false);
-        setEditingSpecialty(null);
-        setEditFormData({ name: '', description: '' });
-        alert('✅ Specialty updated successfully!');
-      } else {
-        const errorData = await response.json();
-        console.error('Update failed:', errorData);
-        alert(`❌ Error: ${errorData.message || 'Failed to update specialty'}`);
-      }
+      setSpecialties(specialties.map(s => 
+        s._id === editingSpecialty._id ? response.data.data : s
+      ));
+      setShowEditDialog(false);
+      setEditingSpecialty(null);
+      setEditFormData({ name: '', description: '' });
+      alert('✅ Specialty updated successfully!');
     } catch (error) {
       console.error('Error updating specialty:', error);
       alert('❌ Failed to update specialty. Please try again.');
@@ -222,32 +206,12 @@ const AdminAppointmentManagement = () => {
     if (!deletingSpecialty) return;
 
     try {
-      console.log('Sending DELETE request to:', `/api/admin/appointments/specialties/${deletingSpecialty._id}`);
-      const response = await fetch(`/api/admin/appointments/specialties/${deletingSpecialty._id}`, {
-        method: 'DELETE'
-      });
-
-      console.log('Response status:', response.status);
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Delete successful:', data);
-        setSpecialties(specialties.filter(s => s._id !== deletingSpecialty._id));
-        setSelectedSpecialtyForDropdown(''); // Clear dropdown selection if deleted
-        setShowDeleteDialog(false);
-        setDeletingSpecialty(null);
-        alert('✅ Specialty deleted successfully!');
-      } else {
-        const errorData = await response.json();
-        console.error('Delete failed:', errorData);
-        
-        // Handle doctors using this specialty
-        if (errorData.doctors && errorData.doctors.length > 0) {
-          const doctorNames = errorData.doctors.map(d => d.name).join(', ');
-          alert(`❌ Cannot delete specialty!\n\n${errorData.message}\n\nDoctors using this specialty: ${doctorNames}\n\nPlease reassign or delete those doctors first.`);
-        } else {
-          alert(`❌ Error: ${errorData.message || 'Failed to delete specialty'}`);
-        }
-      }
+      await api.delete(`/admin/appointments/specialties/${deletingSpecialty._id}`);
+      setSpecialties(specialties.filter(s => s._id !== deletingSpecialty._id));
+      setSelectedSpecialtyForDropdown('');
+      setShowDeleteDialog(false);
+      setDeletingSpecialty(null);
+      alert('✅ Specialty deleted successfully!');
     } catch (error) {
       console.error('Error deleting specialty:', error);
       alert('❌ Failed to delete specialty. Please try again.');
@@ -433,30 +397,15 @@ const AdminAppointmentManagement = () => {
         doctorId: selectedDoctor
       });
 
-      const response = await fetch(`/api/admin/appointments/doctors/${selectedDoctor}/slots`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...newSlot,
-          specialtyId: selectedSpecialty,
-          date: selectedDate
-        })
+      const response = await api.post(`/admin/appointments/doctors/${selectedDoctor}/slots`, {
+        ...newSlot,
+        specialtyId: selectedSpecialty,
+        date: selectedDate
       });
-
-      console.log('Response status:', response.status);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Slot created successfully:', data);
-        setAvailabilitySlots([...availabilitySlots, data.data]);
-        setNewSlot({ startTime: '09:00', endTime: '17:00', durationMinutes: 15 });
-        setShowAddSlotForm(false);
-        alert('✅ Availability slot created successfully!');
-      } else {
-        const errorData = await response.json();
-        console.error('Error response:', errorData);
-        alert(`❌ Error: ${errorData.message || 'Failed to create slot'}`);
-      }
+      setAvailabilitySlots([...availabilitySlots, response.data.data]);
+      setNewSlot({ startTime: '09:00', endTime: '17:00', durationMinutes: 15 });
+      setShowAddSlotForm(false);
+      alert('✅ Availability slot created successfully!');
     } catch (error) {
       console.error('Error creating slot:', error);
       alert('❌ Failed to create slot. Please try again.');
@@ -505,30 +454,15 @@ const AdminAppointmentManagement = () => {
         doctorId: selectedDoctor
       });
 
-      const response = await fetch(`/api/admin/appointments/doctors/${selectedDoctor}/slots/bulk`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          specialtyId: selectedSpecialty,
-          date: selectedDate,
-          timeSlots: bulkSlots
-        })
+      const response = await api.post(`/admin/appointments/doctors/${selectedDoctor}/slots/bulk`, {
+        specialtyId: selectedSpecialty,
+        date: selectedDate,
+        timeSlots: bulkSlots
       });
-
-      console.log('Bulk response status:', response.status);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Bulk slots created successfully:', data);
-        loadDoctorSlots(selectedDoctor, selectedDate);
-        setBulkSlots([]);
-        setShowBulkAddForm(false);
-        alert(`✅ ${bulkSlots.length} slots created successfully!`);
-      } else {
-        const errorData = await response.json();
-        console.error('Bulk error response:', errorData);
-        alert(`❌ Error: ${errorData.message || 'Failed to create bulk slots'}`);
-      }
+      loadDoctorSlots(selectedDoctor, selectedDate);
+      setBulkSlots([]);
+      setShowBulkAddForm(false);
+      alert(`✅ ${response.data.message || `${bulkSlots.length} slots created successfully!`}`);
     } catch (error) {
       console.error('Error creating bulk slots:', error);
       alert('❌ Failed to create bulk slots. Please try again.');
@@ -539,19 +473,12 @@ const AdminAppointmentManagement = () => {
 
   const handleUpdateSlotAvailability = async (slotId, isAvailable) => {
     try {
-      const response = await fetch(`/api/admin/appointments/slots/${slotId}/availability`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isAvailable })
-      });
-
-      if (response.ok) {
-        setAvailabilitySlots(prev =>
-          prev.map(slot =>
-            slot._id === slotId ? { ...slot, isAvailable } : slot
-          )
-        );
-      }
+      await api.put(`/admin/appointments/slots/${slotId}/availability`, { isAvailable });
+      setAvailabilitySlots(prev =>
+        prev.map(slot =>
+          slot._id === slotId ? { ...slot, isAvailable } : slot
+        )
+      );
     } catch (error) {
       console.error('Error updating slot availability:', error);
     }
@@ -560,14 +487,9 @@ const AdminAppointmentManagement = () => {
   const handleDeleteSlot = async (slotId) => {
     if (window.confirm('Are you sure you want to delete this slot?')) {
       try {
-        const response = await fetch(`/api/admin/appointments/slots/${slotId}`, {
-          method: 'DELETE'
-        });
-
-        if (response.ok) {
-          setAvailabilitySlots(prev => prev.filter(slot => slot._id !== slotId));
-          alert('Slot deleted successfully!');
-        }
+        await api.delete(`/admin/appointments/slots/${slotId}`);
+        setAvailabilitySlots(prev => prev.filter(slot => slot._id !== slotId));
+        alert('Slot deleted successfully!');
       } catch (error) {
         console.error('Error deleting slot:', error);
       }
