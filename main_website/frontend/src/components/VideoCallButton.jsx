@@ -4,6 +4,7 @@ import RecordingAlert from './RecordingAlert';
 import RecordingIndicator from './RecordingIndicator';
 import MeetingSummary from './MeetingSummary';
 import { useAudioRecording } from '../hooks/useAudioRecording';
+import api from '../services/api';
 
 const VideoCallButton = ({ 
   appointment, 
@@ -61,22 +62,12 @@ const VideoCallButton = ({
   // Function to mark appointment as serviced
   const markAppointmentAsServiced = async (appointmentId) => {
     try {
-      const response = await fetch(`/api/appointments/${appointmentId}/serviced`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
+      await api.put(`/appointments/${appointmentId}/serviced`);
         console.log('✅ Appointment marked as serviced');
         // Optionally refresh the appointment data or trigger a callback
         if (onCallEnd) {
           onCallEnd(appointmentId);
         }
-      } else {
-        console.error('❌ Failed to mark appointment as serviced');
-      }
     } catch (error) {
       console.error('❌ Error marking appointment as serviced:', error);
     }
@@ -172,20 +163,8 @@ const VideoCallButton = ({
   // Check if doctor has joined the meeting
   const checkDoctorJoined = async (meetingId) => {
     try {
-      // Check if there's an active meeting with doctor
-      const response = await fetch(`/api/meetings/check-doctor-joined/${meetingId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        return data.doctorJoined;
-      }
-      
-      return false;
+      const response = await api.get(`/meetings/check-doctor-joined/${meetingId}`);
+      return !!response.data?.doctorJoined;
     } catch (error) {
       console.error('Error checking doctor status:', error);
       return false;
@@ -195,16 +174,7 @@ const VideoCallButton = ({
   // Notify backend that doctor joined
   const notifyDoctorJoined = async (meetingId, doctorId, appointmentId) => {
     try {
-      await fetch(`/api/meetings/doctor-joins/${meetingId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          doctorId,
-          appointmentId
-        })
-      });
+      await api.post(`/meetings/doctor-joins/${meetingId}`, { doctorId, appointmentId });
     } catch (error) {
       console.error('Error notifying doctor joined:', error);
     }
@@ -213,16 +183,7 @@ const VideoCallButton = ({
   // Notify backend that patient joined
   const notifyPatientJoined = async (meetingId, patientId, appointmentId) => {
     try {
-      await fetch(`/api/meetings/patient-joins/${meetingId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          patientId,
-          appointmentId
-        })
-      });
+      await api.post(`/meetings/patient-joins/${meetingId}`, { patientId, appointmentId });
     } catch (error) {
       console.error('Error notifying patient joined:', error);
     }
@@ -231,22 +192,14 @@ const VideoCallButton = ({
   // Start recording session
   const startRecordingSession = async (meetingId) => {
     try {
-      const response = await fetch('/api/recordings/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          appointmentId: appointment._id,
-          meetingId: meetingId,
-          userType: userType
-        })
+      const response = await api.post('/recordings/start', {
+        appointmentId: appointment._id,
+        meetingId,
+        userType
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setRecordingId(data.data.recordingId);
-        setRecordingSessionStarted(true);
-        console.log('🎤 Recording session started:', data.data.recordingId);
-      }
+      setRecordingId(response.data.data.recordingId);
+      setRecordingSessionStarted(true);
+      console.log('🎤 Recording session started:', response.data.data.recordingId);
     } catch (error) {
       console.error('Error starting recording session:', error);
     }
@@ -310,12 +263,8 @@ const VideoCallButton = ({
         const formData = new FormData();
         formData.append('audio', finalBlob, `recording-${Date.now()}.webm`);
         
-        const uploadResponse = await fetch(`/api/recordings/${recordingId}/${userType}`, {
-          method: 'POST',
-          body: formData
-        });
-        
-        const uploadResult = await uploadResponse.json();
+        const uploadResponse = await api.post(`/recordings/${recordingId}/${userType}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const uploadResult = uploadResponse.data;
         
         // Check if both recordings are ready for processing
         if (uploadResult?.bothRecordingsReady) {
@@ -341,8 +290,8 @@ const VideoCallButton = ({
     
     const poll = async () => {
       try {
-        const response = await fetch(`/api/recordings/${recordingId}/status`);
-        const data = await response.json();
+        const response = await api.get(`/recordings/${recordingId}/status`);
+        const data = response.data;
         
         if (data.success) {
           const bothReady = data.data.patientRecording?.status === 'uploaded' && 
@@ -375,16 +324,9 @@ const VideoCallButton = ({
     try {
       console.log('🤖 [VIDEO CALL] Generating AI summary for recording:', recordingId);
       
-      const response = await fetch(`/api/recordings/${recordingId}/generate-summary`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
+      const response = await api.post(`/recordings/${recordingId}/generate-summary`);
       console.log('🤖 [VIDEO CALL] Summary generation response status:', response.status);
-
-      const data = await response.json();
+      const data = response.data;
       console.log('🤖 [VIDEO CALL] Summary generation response data:', data);
       
       // Check for populate errors
