@@ -91,8 +91,8 @@ const PatientAppointmentBooking = () => {
       setIsLoadingAppointments(true);
       const abhaId = localStorage.getItem('abhaId'); // Use ABHA ID as primary identifier
       if (abhaId) {
-        const response = await fetch(`/api/appointments/patient/abha/${abhaId}`);
-        const data = await response.json();
+        const response = await api.get(`/appointments/patient/abha/${abhaId}`);
+        const data = response.data;
         
         if (data.data && data.data.length > 0) {
           // Separate appointments by status
@@ -145,9 +145,8 @@ const PatientAppointmentBooking = () => {
     
     // Load doctors for this specialty (without date filter)
     try {
-      const response = await fetch(`/api/appointments/doctors/specialty/${specialtyId}`);
-      const data = await response.json();
-      setDoctors(data.data);
+      const response = await api.get(`/appointments/doctors/specialty/${specialtyId}`);
+      setDoctors(response.data.data);
     } catch (error) {
       console.error('Error loading doctors:', error);
     }
@@ -168,9 +167,8 @@ const PatientAppointmentBooking = () => {
     if (selectedDoctor && date) {
       // Load slots for the selected doctor and date
       try {
-        const response = await fetch(`/api/appointments/doctors/${selectedDoctor}/slots?date=${date}`);
-        const data = await response.json();
-        setAvailableSlots(data.data);
+        const response = await api.get(`/appointments/doctors/${selectedDoctor}/slots`, { params: { date } });
+        setAvailableSlots(response.data.data);
         setCurrentStep(4); // Move to time slot selection
       } catch (error) {
         console.error('Error loading slots:', error);
@@ -264,23 +262,14 @@ const PatientAppointmentBooking = () => {
   const handleCancelAppointment = async (appointmentId) => {
     if (window.confirm('Are you sure you want to cancel this appointment?')) {
       try {
-        const response = await fetch(`/api/appointments/${appointmentId}/cancel`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reason: 'Cancelled by patient' })
-        });
-
-        if (response.ok) {
-          alert('Appointment cancelled successfully!');
-          loadUserAppointments();
-          
-          // Reload available slots if we're currently viewing slots for the same doctor and date
-          if (selectedDoctor && selectedDate) {
-            console.log('🔄 Reloading available slots after cancellation...');
-            await loadAvailableSlots(selectedDoctor, selectedDate);
-          }
-        } else {
-          alert('Failed to cancel appointment. Please try again.');
+        await api.put(`/appointments/${appointmentId}/cancel`, { reason: 'Cancelled by patient' });
+        alert('Appointment cancelled successfully!');
+        loadUserAppointments();
+        
+        // Reload available slots if we're currently viewing slots for the same doctor and date
+        if (selectedDoctor && selectedDate) {
+          console.log('🔄 Reloading available slots after cancellation...');
+          await loadAvailableSlots(selectedDoctor, selectedDate);
         }
       } catch (error) {
         console.error('Error cancelling appointment:', error);
